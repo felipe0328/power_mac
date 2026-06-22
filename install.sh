@@ -36,7 +36,7 @@ ok "CLI tools installed"
 
 # ── 3. GUI apps ───────────────────────────────────────────────────────────────
 step "Installing apps..."
-brew install --cask ghostty aerospace alt-tab raycast maccy stats thaw font-meslo-lg-nerd-font
+brew install --cask ghostty nikitabobko/tap/aerospace alt-tab raycast maccy stats thaw font-meslo-lg-nerd-font
 ok "Apps installed"
 
 # ── 4. Oh My Zsh ─────────────────────────────────────────────────────────────
