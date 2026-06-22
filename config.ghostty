@@ -1,0 +1,36 @@
+# Font
+font-family = MesloLGS NF
+font-size = 14
+
+# Theme
+theme = TokyoNight
+
+# Window
+window-padding-x = 8
+window-padding-y = 8
+
+# Cursor
+cursor-style = block
+mouse-hide-while-typing = true
+
+# Tabs
+confirm-close-surface = false
+
+# Scrolling
+scrollback-limit = 50000
+
+# Clipboard
+copy-on-select = false
+
+# Performance
+background-opacity = 1.0
+
+# Shell
+shell-integration = zsh
+
+# macOS
+macos-titlebar-style = tabs
+macos-option-as-alt = true
+
+# Bell
+bell-features = title

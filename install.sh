@@ -36,7 +36,7 @@ ok "CLI tools installed"
 
 # ── 3. GUI apps ───────────────────────────────────────────────────────────────
 step "Installing apps..."
-brew install --cask ghostty aerospace alt-tab raycast maccy stats thaw
+brew install --cask ghostty aerospace alt-tab raycast maccy stats thaw font-meslo-lg-nerd-font
 ok "Apps installed"
 
 # ── 4. Oh My Zsh ─────────────────────────────────────────────────────────────
@@ -76,6 +76,11 @@ ln -sf "$SCRIPT_DIR/.zshrc" "$HOME/.zshrc"
 ln -sf "$SCRIPT_DIR/.p10k.zsh" "$HOME/.p10k.zsh"
 ln -sf "$SCRIPT_DIR/.aerospace.toml" "$HOME/.aerospace.toml"
 ln -sf "$SCRIPT_DIR/exports" "$HOME/.config/exports"
+mkdir -p "$HOME/.config/ghostty"
+ln -sf "$SCRIPT_DIR/config.ghostty" "$HOME/.config/ghostty/config.ghostty"
+# macOS also loads Application Support after XDG (and overrides it) — remove defaults there
+rm -f "$HOME/Library/Application Support/com.mitchellh.ghostty/config" \
+      "$HOME/Library/Application Support/com.mitchellh.ghostty/config.ghostty" 2>/dev/null || true
 
 # nvim — back up if a real directory already exists (not a symlink)
 if [ -d "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then

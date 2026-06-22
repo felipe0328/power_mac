@@ -71,6 +71,7 @@ cd ~/power_conf
 | `🎨 .p10k.zsh` | `~/.p10k.zsh` | Powerlevel10k prompt layout and segments |
 | `📤 exports` | `~/.config/exports` | Environment variable exports |
 | `🌌 .aerospace.toml` | `~/.aerospace.toml` | AeroSpace workspace and keybinding config |
+| `🦁 config.ghostty` | `~/.config/ghostty/config.ghostty` | Ghostty terminal font, theme, and UI settings |
 | `💚 nvim/` | `~/.config/nvim/` | Full LazyVim-based Neovim configuration |
 | `🪟 tmux-installer/` | — | Tmux installer script + Dracula-themed status bar configs |
 | `📊 stats/` | `~/Library/Preferences/` | Stats menu bar layout and module preferences |
