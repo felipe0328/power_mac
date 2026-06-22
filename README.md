@@ -32,7 +32,7 @@ cd ~/power_conf
 ### 🖥️ Terminal & Shell
 
 | Tool | Description | Install |
-|------|-------------|---------|
+| --- | --- | --- |
 | 🦁 **Ghostty** | GPU-accelerated terminal with native macOS UI | `brew install --cask ghostty` |
 | 🐚 **Zsh + Oh My Zsh** | Shell framework with plugins and themes | installed by script |
 | ⚡ **Powerlevel10k** | Fast, highly customizable Zsh prompt theme | cloned by script |
@@ -41,15 +41,14 @@ cd ~/power_conf
 ### 🪄 Window Management
 
 | Tool | Description | Install |
-|------|-------------|---------|
-| 🌌 **AeroSpace** | i3-like tiling window manager for macOS | `brew install --cask aerospace` |
+| --- | --- | --- |
+| 🌌 **AeroSpace** | i3-like tiling window manager for macOS | `brew install --cask nikitabobko/tap/aerospace` |
 | 🔄 **AltTab** | Windows-style alt-tab app switcher | `brew install --cask alt-tab` |
 
 ### 🛠️ Productivity & Utilities
 
 | Tool | Description | Install |
-|------|-------------|---------|
-| 🚀 **Raycast** | Spotlight replacement — launcher, clipboard, snippets | `brew install --cask raycast` |
+| --- | --- | --- |
 | 📋 **Maccy** | Lightweight keyboard-driven clipboard manager | `brew install --cask maccy` |
 | 📊 **Stats** | System monitor (CPU, RAM, temps) in the menu bar | `brew install --cask stats` |
 | 🧊 **Thaw** | Menu bar manager — hide and organize menu bar icons | `brew install --cask thaw` |
@@ -57,7 +56,7 @@ cd ~/power_conf
 ### ✍️ Editor
 
 | Tool | Description | Install |
-|------|-------------|---------|
+| --- | --- | --- |
 | 💚 **Neovim** | Hyperextensible Vim-based editor (LazyVim config included) | `brew install neovim` |
 | 😺 **Lazygit** | Terminal UI for Git | `brew install lazygit` |
 
@@ -66,7 +65,7 @@ cd ~/power_conf
 ## 🗂️ Dotfiles & configs included
 
 | File/Folder | Maps to | Description |
-|---|---|---|
+| --- | --- | --- |
 | `📄 .zshrc` | `~/.zshrc` | Zsh config with Oh My Zsh, plugins, and PATH setup |
 | `🎨 .p10k.zsh` | `~/.p10k.zsh` | Powerlevel10k prompt layout and segments |
 | `📤 exports` | `~/.config/exports` | Environment variable exports |
