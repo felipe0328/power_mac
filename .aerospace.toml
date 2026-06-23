@@ -78,6 +78,10 @@ on-mode-changed = []
 # 'main' binding mode must be always presented
 # Fallback value (if you omit the key): mode.main.binding = {}
 [mode.main.binding]
+# Enter AeroSpace mode
+cmd-ctrl-alt-space = 'mode aerospace'
+
+[mode.aerospace.binding]
 
     # All possible keys:
     # - Letters.        a, b, c, ..., z
@@ -107,54 +111,58 @@ on-mode-changed = []
     # '''
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#layout
-    cmd-ctrl-slash = 'layout tiles horizontal vertical'
-    cmd-ctrl-comma = 'layout accordion horizontal vertical'
+    slash = 'layout tiles horizontal vertical'
+    comma = 'layout accordion horizontal vertical'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#focus
-    cmd-ctrl-left = 'focus left --boundaries all-monitors-outer-frame'
-    cmd-ctrl-down = 'focus down --boundaries all-monitors-outer-frame'
-    cmd-ctrl-up = 'focus up --boundaries all-monitors-outer-frame'
-    cmd-ctrl-right = 'focus right --boundaries all-monitors-outer-frame'
+    left = 'focus left --boundaries all-monitors-outer-frame'
+    down = 'focus down --boundaries all-monitors-outer-frame'
+    up = 'focus up --boundaries all-monitors-outer-frame'
+    right = 'focus right --boundaries all-monitors-outer-frame'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move
-    cmd-ctrl-shift-left = 'move left'
-    cmd-ctrl-shift-down = 'move down'
-    cmd-ctrl-shift-up = 'move up'
-    cmd-ctrl-shift-right = 'move right'
+    shift-left = 'move left'
+    shift-down = 'move down'
+    shift-up = 'move up'
+    shift-right = 'move right'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#resize
-    cmd-ctrl-minus = 'resize smart -50'
-    cmd-ctrl-equal = 'resize smart +50'
+    minus = 'resize smart -50'
+    equal = 'resize smart +50'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
-    cmd-ctrl-1 = 'workspace 1|comms'
-    cmd-ctrl-2 = 'workspace 2|browser'
-    cmd-ctrl-3 = 'workspace 3|browser'
-    cmd-ctrl-4 = 'workspace 4|BE'
-    cmd-ctrl-5 = 'workspace 5|FE'
-    cmd-ctrl-6 = 'workspace 6|code'
-    cmd-ctrl-7 = 'workspace 7|terms'
-    cmd-ctrl-8 = 'workspace 8|terms'
-    cmd-ctrl-9 = 'workspace 9|others'
+    1 = 'workspace 1|comms'
+    2 = 'workspace 2|browser'
+    3 = 'workspace 3|browser'
+    4 = 'workspace 4|BE'
+    5 = 'workspace 5|FE'
+    6 = 'workspace 6|code'
+    7 = 'workspace 7|terms'     
+    8 = 'workspace 8|terms'
+    9 = 'workspace 9|others'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
-    cmd-ctrl-shift-1 = 'move-node-to-workspace 1|comms'
-    cmd-ctrl-shift-2 = 'move-node-to-workspace 2|browser'
-    cmd-ctrl-shift-3 = 'move-node-to-workspace 3|browser'
-    cmd-ctrl-shift-4 = 'move-node-to-workspace 4|BE'
-    cmd-ctrl-shift-5 = 'move-node-to-workspace 5|FE'
-    cmd-ctrl-shift-6 = 'move-node-to-workspace 6|code'
-    cmd-ctrl-shift-7 = 'move-node-to-workspace 7|terms'
-    cmd-ctrl-shift-8 = 'move-node-to-workspace 8|terms'
-    cmd-ctrl-shift-9 = 'move-node-to-workspace 9|others'
+    shift-1 = ['move-node-to-workspace 1|comms', 'mode main']
+    shift-2 = ['move-node-to-workspace 2|browser', 'mode main']
+    shift-3 = ['move-node-to-workspace 3|browser', 'mode main']
+    shift-4 = ['move-node-to-workspace 4|BE', 'mode main']
+    shift-5 = ['move-node-to-workspace 5|FE', 'mode main']
+    shift-6 = ['move-node-to-workspace 6|code', 'mode main']
+    shift-7 = ['move-node-to-workspace 7|terms', 'mode main']
+    shift-8 = ['move-node-to-workspace 8|terms', 'mode main']
+    shift-9 = ['move-node-to-workspace 9|others', 'mode main']
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
-    cmd-ctrl-tab = 'workspace-back-and-forth'
+    tab = 'workspace-back-and-forth'
     # See: https://nikitabobko.github.io/AeroSpace/commands#move-workspace-to-monitor
-    cmd-ctrl-shift-tab = 'move-workspace-to-monitor --wrap-around next'
+    shift-tab = ['move-workspace-to-monitor --wrap-around next', 'mode main']
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#mode
-    cmd-ctrl-shift-semicolon = 'mode service'
+    shift-semicolon = 'mode service'
+
+    # Exit mode
+    esc = 'mode main'
+    q = 'mode main'
 
 # 'service' binding mode declaration.
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
