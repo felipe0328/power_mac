@@ -43,9 +43,22 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan github.com >> ~/.ssh/known_hosts
           key_file="$(mktemp)"
-          printf '%s\n' "$VERSION_BUMP_SSH_KEY" | sed 's/\\n/\n/g' | tr -d '\r' > "$key_file"
+          normalized_key_file="$(mktemp)"
+          printf '%s\n' "$VERSION_BUMP_SSH_KEY" | perl -pe 's/\\n/\n/g; s/\r//g' > "$normalized_key_file"
+
+          if grep -q 'BEGIN .*PRIVATE KEY' "$normalized_key_file"; then
+            cp "$normalized_key_file" "$key_file"
+          elif ! printf '%s' "$VERSION_BUMP_SSH_KEY" | tr -d '\r\n[:space:]' | base64 --decode > "$key_file" 2>/dev/null; then
+            echo "::error::VERSION_BUMP_SSH_KEY is not a raw, escaped, or base64-encoded private SSH key."
+            exit 1
+          fi
+
           chmod 600 "$key_file"
-          ssh-keygen -y -f "$key_file" >/dev/null
+          if ! grep -q 'BEGIN .*PRIVATE KEY' "$key_file" || ! ssh-keygen -y -f "$key_file" >/dev/null; then
+            echo "::error::VERSION_BUMP_SSH_KEY must contain the private deploy key, not the .pub key. Store the raw private key or its base64 encoding."
+            exit 1
+          fi
+
           ssh-add "$key_file"
           git remote set-url origin git@github.com:felipe0328/power_mac.git
           git ls-remote origin HEAD >/dev/null
@@ -153,9 +166,22 @@ jobs:
           chmod 700 ~/.ssh
           ssh-keyscan github.com >> ~/.ssh/known_hosts
           key_file="$(mktemp)"
-          printf '%s\n' "$VERSION_BUMP_SSH_KEY" | sed 's/\\n/\n/g' | tr -d '\r' > "$key_file"
+          normalized_key_file="$(mktemp)"
+          printf '%s\n' "$VERSION_BUMP_SSH_KEY" | perl -pe 's/\\n/\n/g; s/\r//g' > "$normalized_key_file"
+
+          if grep -q 'BEGIN .*PRIVATE KEY' "$normalized_key_file"; then
+            cp "$normalized_key_file" "$key_file"
+          elif ! printf '%s' "$VERSION_BUMP_SSH_KEY" | tr -d '\r\n[:space:]' | base64 --decode > "$key_file" 2>/dev/null; then
+            echo "::error::VERSION_BUMP_SSH_KEY is not a raw, escaped, or base64-encoded private SSH key."
+            exit 1
+          fi
+
           chmod 600 "$key_file"
-          ssh-keygen -y -f "$key_file" >/dev/null
+          if ! grep -q 'BEGIN .*PRIVATE KEY' "$key_file" || ! ssh-keygen -y -f "$key_file" >/dev/null; then
+            echo "::error::VERSION_BUMP_SSH_KEY must contain the private deploy key, not the .pub key. Store the raw private key or its base64 encoding."
+            exit 1
+          fi
+
           ssh-add "$key_file"
           echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" >> "$GITHUB_ENV"
           echo "SSH_AGENT_PID=${SSH_AGENT_PID}" >> "$GITHUB_ENV"
