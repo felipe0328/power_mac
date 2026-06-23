@@ -11,7 +11,9 @@ fi
 export PATH="/opt/homebrew/bin:$PATH"
 
 [[ -f ~/.config/uber_db ]] && source ~/.config/uber_db
-source ~/.config/alias
+[[ -f ~/.config/aliasrc ]] && source ~/.config/aliasrc
+[[ -f ~/.config/goodrx_alias ]] && source ~/.config/goodrx_alias
+[[ -f ~/.config/alias ]] && source ~/.config/alias
 source ~/.config/exports
 
 # Path to your Oh My Zsh installation.

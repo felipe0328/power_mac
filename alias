@@ -1,0 +1,53 @@
+# Shell aliases — sourced from ~/.config/alias via .zshrc
+# Add personal aliases here; keep work-specific ones in ~/.config/goodrx_alias
+# Navigation (.., ..., ll, la, l) comes from Oh My Zsh lib/directories.zsh
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+alias g='git'
+alias gs='git status'
+alias ga='git add'
+alias gaa='git add --all'
+alias gc='git commit'
+alias gcm='git commit -m'
+alias gp='git push'
+alias gpl='git pull'
+alias gd='git diff'
+alias gds='git diff --staged'
+alias gco='git checkout'
+alias gcb='git checkout -b'
+alias gb='git branch'
+alias glog='git log --oneline --graph --decorate -20'
+
+# ── Tools (from power_mac install) ──────────────────────────────────────────
+alias v='nvim'
+alias vim='nvim'
+alias vi='nvim'
+alias lg='lazygit'
+alias ae='aerospace'
+alias areload='aerospace reload-config'
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+alias d='docker'
+alias dc='docker compose'
+alias dps='docker ps'
+alias dpsa='docker ps -a'
+alias dcu='docker compose up -d'
+alias dcd='docker compose down'
+
+# ── Tmux ──────────────────────────────────────────────────────────────────────
+alias ta='tmux attach -t'
+alias tl='tmux list-sessions'
+alias tn='tmux new-session -s'
+
+# ── Homebrew ──────────────────────────────────────────────────────────────────
+alias brewup='brew update && brew upgrade && brew cleanup'
+
+# ── Config editing ────────────────────────────────────────────────────────────
+alias zshconfig='${EDITOR:-nvim} ~/.zshrc'
+alias p10kconfig='${EDITOR:-nvim} ~/.p10k.zsh'
+alias aliases='${EDITOR:-nvim} ~/.config/alias'
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+alias showfiles='defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder'
+alias hidefiles='defaults write com.apple.finder AppleShowAllFiles -bool false && killall Finder'
+alias flushdns='sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder'
