@@ -127,19 +127,23 @@ The canonical version lives in [`VERSION`](VERSION). The README badge and `insta
 
 ### How automation works
 
-On every push to `main`, the [version workflow](.github/workflows/version.yml):
+The [version workflow](.github/workflows/version.yml) has two stages:
 
-1. 📖 Reads all commits in the push
-2. 🧮 Picks the highest bump level (breaking → feat → patch)
-3. 📝 Updates `VERSION`, `README.md`, and `install.sh`
-4. 🤖 Commits `chore: bump version to X.Y.Z [skip version]` back to `main`
+1. On a pull request, including one from a fork, it reads commit messages without
+   running code from the PR and posts the expected version as a PR comment.
+2. After the PR is merged, it reads the commits pushed to `main`, applies the
+   highest required bump, and updates `VERSION`, `README.md`, and `install.sh`.
+3. It commits `chore: bump version to X.Y.Z [skip version]` back to `main`.
+   The marker prevents the automated commit from starting another bump.
 
-You do **not** need to edit `VERSION` manually in PRs.
+Do **not** edit the version files manually in a PR. Use the preview comment to
+confirm the expected version before merging.
 
 ### Preview locally
 
 ```bash
 ./scripts/bump-version.sh --dry-run
+VERSION_BASE_REF=origin/main VERSION_HEAD_REF=HEAD ./scripts/bump-version.sh --report
 ```
 
 ### GitHub setup (maintainers)
@@ -147,9 +151,21 @@ You do **not** need to edit `VERSION` manually in PRs.
 | Setting | Value |
 | --- | --- |
 | **Actions** | Enabled |
-| **Workflow permissions** | Read and write |
-| **Branch protection** | Allow `github-actions[bot]` to push to `main` (if protected) |
-| **Secrets** | None required — uses `GITHUB_TOKEN` |
+| **Deploy key** | Add the public key with write access |
+| **Ruleset bypass** | Add that deploy key to the `main` ruleset with **Always** bypass |
+| **Repository secret** | Store the private key as `VERSION_BUMP_SSH_KEY` |
+| **Merge methods** | Allow merge commits and/or rebase merges; disable squash merges |
+| **Required check** | Require the `preview` check and optionally require branches to be up to date |
+
+The secret may contain the raw private key or its base64 encoding. Never commit
+the private or public key files; the standard local names
+`power_mac_version_bump` and `power_mac_version_bump.pub` are ignored by Git.
+
+To validate a PR before merging, manually run **Bump version** from the Actions
+tab and provide its branch in `ref` and its number in `pr_number`. Code
+validation may inspect that ref, but deploy-key validation runs in a separate
+job only when the workflow itself is dispatched from `main`. This separation
+keeps untrusted PR code away from the write credential.
 
 ---
 
@@ -160,9 +176,10 @@ You do **not** need to edit `VERSION` manually in PRs.
 3. 🔗 Link issues when applicable — `Fixes #1` closes the issue on merge
 4. ✍️ Use conventional commits on every commit in the branch
 
-### Squash merges
+### Merge commit messages
 
-If the PR is **squash-merged**, only the **squash commit message** is analyzed. Write it to match the biggest change in the PR:
+Versioning analyzes the conventional commits included in the merge. Preserve
+those commits by using a merge commit or rebase merge:
 
 ```bash
 feat: add automated versioning and contributor guide   # → minor bump

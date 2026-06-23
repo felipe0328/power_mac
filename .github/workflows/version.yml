@@ -21,11 +21,14 @@ permissions:
   contents: read
 
 concurrency:
+  # Keep one preview per PR and one bump per branch; newer runs supersede stale results.
   group: version-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
+    # This job may check out a contributor-controlled ref. Never expose repository
+    # secrets here or persist state from this runner into a secret-bearing job.
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
     permissions:
@@ -49,6 +52,8 @@ jobs:
           VERSION_BASE_REF=origin/main VERSION_HEAD_REF=HEAD scripts/bump-version.sh --report
 
   validate-deploy-key:
+    # Deploy-key validation is deliberately isolated from arbitrary-ref validation.
+    # Only the trusted workflow on main may load the write credential.
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     permissions:
@@ -92,6 +97,8 @@ jobs:
           git push --dry-run origin HEAD:main
 
   preview:
+    # pull_request_target gives fork PRs permission to comment. Checkout the trusted
+    # base workflow and fetch the PR head only as Git data; do not execute PR code.
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request_target' || inputs.pr_number != ''
     permissions:
@@ -130,6 +137,8 @@ jobs:
           BUMP_TYPE: ${{ steps.preview.outputs.bump_type }}
           REASON: ${{ steps.preview.outputs.reason }}
         run: |
+          # Reuse one marked bot comment so every synchronization updates the preview
+          # instead of adding another comment to the PR.
           marker="<!-- power-mac-version-preview -->"
           body_file="$(mktemp)"
 
@@ -194,6 +203,7 @@ jobs:
           fi
 
   bump:
+    # The automated commit includes [skip version], preventing an infinite push loop.
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[skip version]')
     permissions:
@@ -215,6 +225,8 @@ jobs:
           ssh-keyscan github.com >> ~/.ssh/known_hosts
           key_file="$(mktemp)"
           normalized_key_file="$(mktemp)"
+          # Accept raw multiline keys, secrets containing literal \n sequences, and
+          # base64-encoded keys to make GitHub secret entry less error-prone.
           printf '%s\n' "$VERSION_BUMP_SSH_KEY" | perl -pe 's/\\n/\n/g; s/\r//g' > "$normalized_key_file"
 
           if grep -q 'BEGIN .*PRIVATE KEY' "$normalized_key_file"; then
@@ -258,5 +270,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add VERSION README.md install.sh
           git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip version]"
+          # Confirm the deploy key and ruleset bypass before attempting the real push.
           git push --dry-run origin HEAD:main
           git push origin HEAD:main
