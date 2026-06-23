@@ -45,12 +45,41 @@ automatically-unhide-macos-hidden-apps = false
 # even when they are invisible.
 # This config version is only available since 'config-version = 2'
 # Fallback value (if you omit the key): persistent-workspaces = []
-persistent-workspaces = ["1|comms", "2|browser", "3|browser", "4|BE", "5|FE", "6|code", "7|terms", "8|terms", "9|others"]
+persistent-workspaces = [
+    "0|misc", "1|slack", "2|teams", "3|web", "4|web2",
+    "5|code", "6|code2", "7|code3", "8|term", "9|admin",
+]
 
 # A callback that runs every time binding mode changes
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # See: https://nikitabobko.github.io/AeroSpace/commands#mode
 on-mode-changed = []
+
+# One window per workspace — auto-place apps on open.
+# Extra Cursor/browser windows: move manually with shift-6/7 or shift-4.
+[[on-window-detected]]
+    if.app-id = 'com.tinyspeck.slackmacgap'
+    run = 'move-node-to-workspace 1|slack'
+
+[[on-window-detected]]
+    if.app-id = 'com.microsoft.teams2'
+    run = 'move-node-to-workspace 2|teams'
+
+[[on-window-detected]]
+    if.app-id = 'com.microsoft.teams'
+    run = 'move-node-to-workspace 2|teams'
+
+[[on-window-detected]]
+    if.app-id = 'com.google.Chrome'
+    run = 'move-node-to-workspace 3|web'
+
+[[on-window-detected]]
+    if.app-id = 'com.todesktop.230313mzl4w4u92'
+    run = 'move-node-to-workspace 5|code'
+
+[[on-window-detected]]
+    if.app-id = 'com.github.wez.wezterm'
+    run = 'move-node-to-workspace 8|term'
 
 # Possible values: (qwerty|dvorak|colemak)
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
@@ -130,27 +159,31 @@ cmd-ctrl-alt-space = 'mode aerospace'
     minus = 'resize smart -50'
     equal = 'resize smart +50'
 
-    # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
-    1 = 'workspace 1|comms'
-    2 = 'workspace 2|browser'
-    3 = 'workspace 3|browser'
-    4 = 'workspace 4|BE'
-    5 = 'workspace 5|FE'
-    6 = 'workspace 6|code'
-    7 = 'workspace 7|terms'     
-    8 = 'workspace 8|terms'
-    9 = 'workspace 9|others'
+    # Workspaces (0–9): one full-screen window per slot on a 14" MacBook
+    # 0 misc · 1 slack · 2 teams · 3 web · 4 web2
+    # 5 code · 6 code2 · 7 code3 · 8 term · 9 admin
+    0 = 'workspace 0|misc'
+    1 = 'workspace 1|slack'
+    2 = 'workspace 2|teams'
+    3 = 'workspace 3|web'
+    4 = 'workspace 4|web2'
+    5 = 'workspace 5|code'
+    6 = 'workspace 6|code2'
+    7 = 'workspace 7|code3'
+    8 = 'workspace 8|term'
+    9 = 'workspace 9|admin'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
-    shift-1 = ['move-node-to-workspace 1|comms', 'mode main']
-    shift-2 = ['move-node-to-workspace 2|browser', 'mode main']
-    shift-3 = ['move-node-to-workspace 3|browser', 'mode main']
-    shift-4 = ['move-node-to-workspace 4|BE', 'mode main']
-    shift-5 = ['move-node-to-workspace 5|FE', 'mode main']
-    shift-6 = ['move-node-to-workspace 6|code', 'mode main']
-    shift-7 = ['move-node-to-workspace 7|terms', 'mode main']
-    shift-8 = ['move-node-to-workspace 8|terms', 'mode main']
-    shift-9 = ['move-node-to-workspace 9|others', 'mode main']
+    shift-0 = ['move-node-to-workspace 0|misc', 'mode main']
+    shift-1 = ['move-node-to-workspace 1|slack', 'mode main']
+    shift-2 = ['move-node-to-workspace 2|teams', 'mode main']
+    shift-3 = ['move-node-to-workspace 3|web', 'mode main']
+    shift-4 = ['move-node-to-workspace 4|web2', 'mode main']
+    shift-5 = ['move-node-to-workspace 5|code', 'mode main']
+    shift-6 = ['move-node-to-workspace 6|code2', 'mode main']
+    shift-7 = ['move-node-to-workspace 7|code3', 'mode main']
+    shift-8 = ['move-node-to-workspace 8|term', 'mode main']
+    shift-9 = ['move-node-to-workspace 9|admin', 'mode main']
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
     tab = 'workspace-back-and-forth'

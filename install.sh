@@ -138,27 +138,7 @@ touch "$HOME/.config/alias"
 
 ok "Dotfiles linked"
 
-# ── 9. App preferences ────────────────────────────────────────────────────────
-step "Applying app preferences..."
-# Kill apps first so they don't overwrite the imported prefs on quit
-killall Stats 2>/dev/null || true
-killall Thaw  2>/dev/null || true
-
-if [ -f "$SCRIPT_DIR/stats/eu.exelban.Stats.plist" ]; then
-  defaults import eu.exelban.Stats "$SCRIPT_DIR/stats/eu.exelban.Stats.plist"
-  ok "Stats preferences applied"
-else
-  warn "Stats plist not found — skipping"
-fi
-
-if [ -f "$SCRIPT_DIR/thaw/com.stonerl.Thaw.plist" ]; then
-  defaults import com.stonerl.Thaw "$SCRIPT_DIR/thaw/com.stonerl.Thaw.plist"
-  ok "Thaw preferences applied"
-else
-  warn "Thaw plist not found — skipping"
-fi
-
-# ── 10. Tmux ──────────────────────────────────────────────────────────────────
+# ── 9. Tmux ──────────────────────────────────────────────────────────────────
 step "Setting up Tmux..."
 # Run from its own directory so relative `cp` paths inside the script resolve correctly
 (cd "$SCRIPT_DIR/tmux-installer" && bash tmux-installer.sh)

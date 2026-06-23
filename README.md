@@ -73,8 +73,6 @@ cd ~/power_conf
 | `🖥️ wezterm.lua` | `~/.config/wezterm/wezterm.lua` | WezTerm terminal font, theme, and UI settings |
 | `💚 nvim/` | `~/.config/nvim/` | Full LazyVim-based Neovim configuration |
 | `🪟 tmux-installer/` | — | Tmux installer script + Dracula-themed status bar configs |
-| `📊 stats/` | `~/Library/Preferences/` | Stats menu bar layout and module preferences |
-| `🧊 thaw/` | `~/Library/Preferences/` | Thaw menu bar icon configuration |
 
 ---
 
@@ -87,8 +85,7 @@ cd ~/power_conf
 5. 🐚 Installs **Oh My Zsh** and the **Powerlevel10k** theme
 6. 🔌 Installs **zsh-autosuggestions** plugin
 7. 🔗 **Symlinks** all dotfiles to their correct locations
-8. 🎛️ Applies **app preferences** for Stats and Thaw
-9. 🪟 Runs the interactive **Tmux installer**
+8. 🪟 Runs the interactive **Tmux installer**
 
 ---
 
@@ -96,7 +93,6 @@ cd ~/power_conf
 
 - After the install, run `exec zsh` or restart your terminal to apply all changes
 - `~/.config/alias` is created as an empty stub — fill it in with your personal aliases
-- App preferences (Stats, Thaw) are applied before the apps launch to avoid them being overwritten
 
 ---
 

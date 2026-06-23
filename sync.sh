@@ -4,7 +4,7 @@
 #
 # Use this after you edit a config in this folder (e.g. wezterm.lua) and
 # want the change applied to your computer. It does NOT install anything; it
-# only refreshes the symlinks/preferences that install.sh originally set up.
+# only refreshes the symlinks that install.sh originally set up.
 #
 # It keeps going if a single item fails and prints a summary at the end.
 
@@ -75,28 +75,6 @@ link_config() {
   fi
 }
 
-# import_prefs <domain> <plist-path> [app-name-to-quit]
-import_prefs() {
-  local domain="$1" plist="$2" app="${3:-}"
-
-  if [ ! -f "$plist" ]; then
-    fail "Plist missing, skipped: $plist"
-    return 1
-  fi
-
-  # Quit the app first so it doesn't overwrite the imported prefs on exit.
-  if [ -n "$app" ]; then
-    killall "$app" 2>/dev/null || true
-  fi
-
-  if defaults import "$domain" "$plist"; then
-    ok "Imported preferences for $domain"
-  else
-    fail "Could not import preferences for $domain"
-    return 1
-  fi
-}
-
 # ── 1. Dotfiles ───────────────────────────────────────────────────────────────
 step "Syncing dotfiles..."
 mkdir -p "$HOME/.config" || fail "Could not create ~/.config"
@@ -110,11 +88,6 @@ link_config "$SCRIPT_DIR/nvim"            "$HOME/.config/nvim"
 # ── 2. WezTerm ────────────────────────────────────────────────────────────────
 step "Syncing WezTerm config..."
 link_config "$SCRIPT_DIR/wezterm.lua" "$HOME/.config/wezterm/wezterm.lua"
-
-# ── 3. App preferences ────────────────────────────────────────────────────────
-step "Syncing app preferences..."
-import_prefs "eu.exelban.Stats" "$SCRIPT_DIR/stats/eu.exelban.Stats.plist" "Stats"
-import_prefs "com.stonerl.Thaw" "$SCRIPT_DIR/thaw/com.stonerl.Thaw.plist"  "Thaw"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 if [ "$FAILURES" -eq 0 ]; then
