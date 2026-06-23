@@ -2,7 +2,7 @@
 #
 # sync.sh — push config changes from this repo onto your machine.
 #
-# Use this after you edit a config in this folder (e.g. config.ghostty) and
+# Use this after you edit a config in this folder (e.g. wezterm.lua) and
 # want the change applied to your computer. It does NOT install anything; it
 # only refreshes the symlinks/preferences that install.sh originally set up.
 #
@@ -107,14 +107,9 @@ link_config "$SCRIPT_DIR/.aerospace.toml" "$HOME/.aerospace.toml"
 link_config "$SCRIPT_DIR/exports"         "$HOME/.config/exports"
 link_config "$SCRIPT_DIR/nvim"            "$HOME/.config/nvim"
 
-# ── 2. Ghostty ────────────────────────────────────────────────────────────────
-step "Syncing Ghostty config..."
-link_config "$SCRIPT_DIR/config.ghostty" "$HOME/.config/ghostty/config"
-# macOS also loads Application Support after XDG (and overrides it) — remove any
-# stray defaults there so our config is the one that takes effect.
-rm -f "$HOME/Library/Application Support/com.mitchellh.ghostty/config" \
-      "$HOME/Library/Application Support/com.mitchellh.ghostty/config.ghostty" 2>/dev/null || true
-ok "Cleared Ghostty overrides in Application Support"
+# ── 2. WezTerm ────────────────────────────────────────────────────────────────
+step "Syncing WezTerm config..."
+link_config "$SCRIPT_DIR/wezterm.lua" "$HOME/.config/wezterm/wezterm.lua"
 
 # ── 3. App preferences ────────────────────────────────────────────────────────
 step "Syncing app preferences..."

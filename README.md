@@ -33,7 +33,7 @@ cd ~/power_conf
 
 | Tool | Description | Install |
 | --- | --- | --- |
-| 🦁 **Ghostty** | GPU-accelerated terminal with native macOS UI | `brew install --cask ghostty` |
+| 🖥️ **WezTerm** | GPU-accelerated terminal with Lua-based config | `brew install --cask wezterm` |
 | 🐚 **Zsh + Oh My Zsh** | Shell framework with plugins and themes | installed by script |
 | ⚡ **Powerlevel10k** | Fast, highly customizable Zsh prompt theme | cloned by script |
 | 🪟 **Tmux** | Terminal multiplexer — sessions, splits, status bar | `brew install tmux` |
@@ -70,7 +70,7 @@ cd ~/power_conf
 | `🎨 .p10k.zsh` | `~/.p10k.zsh` | Powerlevel10k prompt layout and segments |
 | `📤 exports` | `~/.config/exports` | Environment variable exports |
 | `🌌 .aerospace.toml` | `~/.aerospace.toml` | AeroSpace workspace and keybinding config |
-| `🦁 config.ghostty` | `~/.config/ghostty/config` | Ghostty terminal font, theme, and UI settings |
+| `🖥️ wezterm.lua` | `~/.config/wezterm/wezterm.lua` | WezTerm terminal font, theme, and UI settings |
 | `💚 nvim/` | `~/.config/nvim/` | Full LazyVim-based Neovim configuration |
 | `🪟 tmux-installer/` | — | Tmux installer script + Dracula-themed status bar configs |
 | `📊 stats/` | `~/Library/Preferences/` | Stats menu bar layout and module preferences |

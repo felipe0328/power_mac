@@ -51,7 +51,7 @@ ok "CLI tools installed"
 
 # ── 3. GUI apps ───────────────────────────────────────────────────────────────
 step "Installing apps..."
-for cask in ghostty nikitabobko/tap/aerospace alt-tab raycast maccy stats thaw font-meslo-lg-nerd-font; do
+for cask in wezterm nikitabobko/tap/aerospace alt-tab raycast maccy stats thaw font-meslo-lg-nerd-font; do
   install_cask "$cask"
 done
 
@@ -93,12 +93,8 @@ ln -sf "$SCRIPT_DIR/.p10k.zsh"      "$HOME/.p10k.zsh"
 ln -sf "$SCRIPT_DIR/.aerospace.toml" "$HOME/.aerospace.toml"
 ln -sf "$SCRIPT_DIR/exports"        "$HOME/.config/exports"
 
-mkdir -p "$HOME/.config/ghostty"
-# Ghostty reads ~/.config/ghostty/config (no extension)
-ln -sf "$SCRIPT_DIR/config.ghostty" "$HOME/.config/ghostty/config"
-# macOS also loads Application Support after XDG (and overrides it) — remove defaults there
-rm -f "$HOME/Library/Application Support/com.mitchellh.ghostty/config" \
-      "$HOME/Library/Application Support/com.mitchellh.ghostty/config.ghostty" 2>/dev/null || true
+mkdir -p "$HOME/.config/wezterm"
+ln -sf "$SCRIPT_DIR/wezterm.lua" "$HOME/.config/wezterm/wezterm.lua"
 
 # nvim — back up if a real directory already exists (not a symlink)
 if [ -d "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then
