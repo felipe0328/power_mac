@@ -29,8 +29,5 @@ background-opacity = 1.0
 shell-integration = zsh
 
 # macOS
-macos-titlebar-style = tabs
+macos-titlebar-style = native
 macos-option-as-alt = true
-
-# Bell
-bell-features = title

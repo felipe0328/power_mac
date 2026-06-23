@@ -6,7 +6,7 @@
 
 *Dotfiles, apps, terminal setup, window management — all automated.*
 
-![Version](https://img.shields.io/badge/version-1.0.0-blueviolet?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.0.1-blueviolet?style=flat-square)
 ![macOS](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)
 ![Shell](https://img.shields.io/badge/shell-zsh-informational?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -70,7 +70,7 @@ cd ~/power_conf
 | `🎨 .p10k.zsh` | `~/.p10k.zsh` | Powerlevel10k prompt layout and segments |
 | `📤 exports` | `~/.config/exports` | Environment variable exports |
 | `🌌 .aerospace.toml` | `~/.aerospace.toml` | AeroSpace workspace and keybinding config |
-| `🦁 config.ghostty` | `~/.config/ghostty/config.ghostty` | Ghostty terminal font, theme, and UI settings |
+| `🦁 config.ghostty` | `~/.config/ghostty/config` | Ghostty terminal font, theme, and UI settings |
 | `💚 nvim/` | `~/.config/nvim/` | Full LazyVim-based Neovim configuration |
 | `🪟 tmux-installer/` | — | Tmux installer script + Dracula-themed status bar configs |
 | `📊 stats/` | `~/Library/Preferences/` | Stats menu bar layout and module preferences |
@@ -101,6 +101,6 @@ cd ~/power_conf
 
 <div align="center">
 
-Made with ❤️ for a productive Mac setup &nbsp;•&nbsp; **v1.0.0**
+Made with ❤️ for a productive Mac setup &nbsp;•&nbsp; **v1.0.1**
 
 </div>

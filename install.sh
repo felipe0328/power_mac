@@ -1,4 +1,5 @@
 #!/bin/bash
+# Version: 1.0.1
 
 set -e
 
@@ -14,6 +15,20 @@ NC='\033[0m'
 step() { echo -e "\n${BLUE}==>${NC} $1"; }
 ok()   { echo -e "  ${GREEN}✓${NC} $1"; }
 warn() { echo -e "  ${YELLOW}!${NC} $1"; }
+
+install_cask() {
+  local cask="$1"
+  local name="${cask##*/}"  # strip tap prefix (e.g. nikitabobko/tap/aerospace → aerospace)
+  if brew list --cask "$name" &>/dev/null; then
+    ok "$name already installed"
+  else
+    if brew install --cask "$cask"; then
+      ok "$name installed"
+    else
+      warn "$name installation failed — skipping"
+    fi
+  fi
+}
 
 # ── 1. Homebrew ───────────────────────────────────────────────────────────────
 step "Checking Homebrew..."
@@ -36,8 +51,9 @@ ok "CLI tools installed"
 
 # ── 3. GUI apps ───────────────────────────────────────────────────────────────
 step "Installing apps..."
-brew install --cask ghostty nikitabobko/tap/aerospace alt-tab raycast maccy stats thaw font-meslo-lg-nerd-font
-ok "Apps installed"
+for cask in ghostty nikitabobko/tap/aerospace alt-tab raycast maccy stats thaw font-meslo-lg-nerd-font; do
+  install_cask "$cask"
+done
 
 # ── 4. Oh My Zsh ─────────────────────────────────────────────────────────────
 step "Installing Oh My Zsh..."
@@ -72,12 +88,14 @@ fi
 step "Linking dotfiles..."
 mkdir -p "$HOME/.config"
 
-ln -sf "$SCRIPT_DIR/.zshrc" "$HOME/.zshrc"
-ln -sf "$SCRIPT_DIR/.p10k.zsh" "$HOME/.p10k.zsh"
+ln -sf "$SCRIPT_DIR/.zshrc"         "$HOME/.zshrc"
+ln -sf "$SCRIPT_DIR/.p10k.zsh"      "$HOME/.p10k.zsh"
 ln -sf "$SCRIPT_DIR/.aerospace.toml" "$HOME/.aerospace.toml"
-ln -sf "$SCRIPT_DIR/exports" "$HOME/.config/exports"
+ln -sf "$SCRIPT_DIR/exports"        "$HOME/.config/exports"
+
 mkdir -p "$HOME/.config/ghostty"
-ln -sf "$SCRIPT_DIR/config.ghostty" "$HOME/.config/ghostty/config.ghostty"
+# Ghostty reads ~/.config/ghostty/config (no extension)
+ln -sf "$SCRIPT_DIR/config.ghostty" "$HOME/.config/ghostty/config"
 # macOS also loads Application Support after XDG (and overrides it) — remove defaults there
 rm -f "$HOME/Library/Application Support/com.mitchellh.ghostty/config" \
       "$HOME/Library/Application Support/com.mitchellh.ghostty/config.ghostty" 2>/dev/null || true
@@ -98,17 +116,29 @@ ok "Dotfiles linked"
 step "Applying app preferences..."
 # Kill apps first so they don't overwrite the imported prefs on quit
 killall Stats 2>/dev/null || true
-killall Thaw 2>/dev/null || true
+killall Thaw  2>/dev/null || true
 
-defaults import eu.exelban.Stats "$SCRIPT_DIR/stats/eu.exelban.Stats.plist"
-defaults import com.stonerl.Thaw "$SCRIPT_DIR/thaw/com.stonerl.Thaw.plist"
-ok "App preferences applied"
+if [ -f "$SCRIPT_DIR/stats/eu.exelban.Stats.plist" ]; then
+  defaults import eu.exelban.Stats "$SCRIPT_DIR/stats/eu.exelban.Stats.plist"
+  ok "Stats preferences applied"
+else
+  warn "Stats plist not found — skipping"
+fi
+
+if [ -f "$SCRIPT_DIR/thaw/com.stonerl.Thaw.plist" ]; then
+  defaults import com.stonerl.Thaw "$SCRIPT_DIR/thaw/com.stonerl.Thaw.plist"
+  ok "Thaw preferences applied"
+else
+  warn "Thaw plist not found — skipping"
+fi
 
 # ── 9. Tmux ───────────────────────────────────────────────────────────────────
 step "Setting up Tmux..."
-bash "$SCRIPT_DIR/tmux-installer/tmux-installer.sh"
+# Run from its own directory so relative `cp` paths inside the script resolve correctly
+(cd "$SCRIPT_DIR/tmux-installer" && bash tmux-installer.sh)
+ok "Tmux configured"
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo -e "\n${GREEN}All done!${NC}"
 echo -e "  Restart your terminal (or run ${BLUE}exec zsh${NC}) to apply all changes."
-echo -e "  ${YELLOW}Note:${NC} Fill in ~/.config/alias and ~/.config/uber_db with your personal entries.\n"
+echo -e "  ${YELLOW}Note:${NC} Fill in ~/.config/alias with your personal entries.\n"
