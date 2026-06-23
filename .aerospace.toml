@@ -22,7 +22,7 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 accordion-padding = 30
 
 # Possible values: tiles|accordion
-default-root-container-layout = 'tiles'
+default-root-container-layout = 'accordion'
 
 # Possible values: horizontal|vertical|auto
 # 'auto' means: wide monitor (anything wider than high) gets horizontal orientation,
@@ -174,21 +174,21 @@ cmd-ctrl-alt-space = 'mode aerospace'
     9 = 'workspace 9|admin'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
-    shift-0 = ['move-node-to-workspace 0|misc', 'mode main']
-    shift-1 = ['move-node-to-workspace 1|slack', 'mode main']
-    shift-2 = ['move-node-to-workspace 2|teams', 'mode main']
-    shift-3 = ['move-node-to-workspace 3|web', 'mode main']
-    shift-4 = ['move-node-to-workspace 4|web2', 'mode main']
-    shift-5 = ['move-node-to-workspace 5|code', 'mode main']
-    shift-6 = ['move-node-to-workspace 6|code2', 'mode main']
-    shift-7 = ['move-node-to-workspace 7|code3', 'mode main']
-    shift-8 = ['move-node-to-workspace 8|term', 'mode main']
-    shift-9 = ['move-node-to-workspace 9|admin', 'mode main']
+    shift-0 = 'move-node-to-workspace 0|misc'
+    shift-1 = 'move-node-to-workspace 1|slack'
+    shift-2 = 'move-node-to-workspace 2|teams'
+    shift-3 = 'move-node-to-workspace 3|web'
+    shift-4 = 'move-node-to-workspace 4|web2'
+    shift-5 = 'move-node-to-workspace 5|code'
+    shift-6 = 'move-node-to-workspace 6|code2'
+    shift-7 = 'move-node-to-workspace 7|code3'
+    shift-8 = 'move-node-to-workspace 8|term'
+    shift-9 = 'move-node-to-workspace 9|admin'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
     tab = 'workspace-back-and-forth'
     # See: https://nikitabobko.github.io/AeroSpace/commands#move-workspace-to-monitor
-    shift-tab = ['move-workspace-to-monitor --wrap-around next', 'mode main']
+    shift-tab = 'move-workspace-to-monitor --wrap-around next'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#mode
     shift-semicolon = 'mode service'
