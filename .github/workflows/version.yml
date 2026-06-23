@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Validate version script
         run: |
@@ -41,7 +42,11 @@ jobs:
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           ssh-keyscan github.com >> ~/.ssh/known_hosts
-          printf '%s\n' "$VERSION_BUMP_SSH_KEY" | tr -d '\r' | ssh-add -
+          key_file="$(mktemp)"
+          printf '%s\n' "$VERSION_BUMP_SSH_KEY" | sed 's/\\n/\n/g' | tr -d '\r' > "$key_file"
+          chmod 600 "$key_file"
+          ssh-keygen -y -f "$key_file" >/dev/null
+          ssh-add "$key_file"
           git remote set-url origin git@github.com:felipe0328/power_mac.git
           git ls-remote origin HEAD >/dev/null
           git push --dry-run origin HEAD:main
@@ -128,6 +133,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Configure version bump deploy key
         env:
@@ -138,7 +144,11 @@ jobs:
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           ssh-keyscan github.com >> ~/.ssh/known_hosts
-          printf '%s\n' "$VERSION_BUMP_SSH_KEY" | tr -d '\r' | ssh-add -
+          key_file="$(mktemp)"
+          printf '%s\n' "$VERSION_BUMP_SSH_KEY" | sed 's/\\n/\n/g' | tr -d '\r' > "$key_file"
+          chmod 600 "$key_file"
+          ssh-keygen -y -f "$key_file" >/dev/null
+          ssh-add "$key_file"
           echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" >> "$GITHUB_ENV"
           echo "SSH_AGENT_PID=${SSH_AGENT_PID}" >> "$GITHUB_ENV"
           git remote set-url origin git@github.com:felipe0328/power_mac.git
