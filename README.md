@@ -82,12 +82,13 @@ cd ~/power_conf
 
 1. 🍺 Installs **Homebrew** if not present
 2. 📦 Installs all **CLI tools** — tmux, neovim, lazygit, direnv, fzf
-3. 🖥️ Installs all **GUI apps** via Homebrew Cask
-4. 🐚 Installs **Oh My Zsh** and the **Powerlevel10k** theme
-5. 🔌 Installs **zsh-autosuggestions** plugin
-6. 🔗 **Symlinks** all dotfiles to their correct locations
-7. 🎛️ Applies **app preferences** for Stats and Thaw
-8. 🪟 Runs the interactive **Tmux installer**
+3. 🔤 Installs **MesloLGS NF** (WezTerm + Powerlevel10k prompt icons)
+4. 🖥️ Installs all **GUI apps** via Homebrew Cask
+5. 🐚 Installs **Oh My Zsh** and the **Powerlevel10k** theme
+6. 🔌 Installs **zsh-autosuggestions** plugin
+7. 🔗 **Symlinks** all dotfiles to their correct locations
+8. 🎛️ Applies **app preferences** for Stats and Thaw
+9. 🪟 Runs the interactive **Tmux installer**
 
 ---
 

@@ -30,6 +30,28 @@ install_cask() {
   fi
 }
 
+# MesloLGS NF — required by wezterm.lua and .p10k.zsh (nerdfont-v3).
+# Uses the Powerlevel10k-patched build so the family name matches configs exactly.
+install_meslo_lgs_nf() {
+  local variant="$1"
+  local filename="MesloLGS NF ${variant}.ttf"
+  local dest="$HOME/Library/Fonts/$filename"
+  local url_variant="${variant// /%20}"
+
+  if [ -f "$dest" ]; then
+    ok "$filename already installed"
+    return 0
+  fi
+
+  if curl -fsSL \
+    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20${url_variant}.ttf" \
+    -o "$dest"; then
+    ok "$filename installed"
+  else
+    warn "Failed to install $filename"
+  fi
+}
+
 # ── 1. Homebrew ───────────────────────────────────────────────────────────────
 step "Checking Homebrew..."
 if ! command -v brew &>/dev/null; then
@@ -49,13 +71,21 @@ step "Installing CLI tools..."
 brew install tmux neovim lazygit direnv fzf
 ok "CLI tools installed"
 
-# ── 3. GUI apps ───────────────────────────────────────────────────────────────
+# ── 3. Fonts ──────────────────────────────────────────────────────────────────
+step "Installing fonts..."
+mkdir -p "$HOME/Library/Fonts"
+for variant in "Regular" "Bold" "Italic" "Bold Italic"; do
+  install_meslo_lgs_nf "$variant"
+done
+ok "Fonts installed (MesloLGS NF — WezTerm + Powerlevel10k)"
+
+# ── 4. GUI apps ───────────────────────────────────────────────────────────────
 step "Installing apps..."
-for cask in wezterm nikitabobko/tap/aerospace alt-tab raycast maccy stats thaw font-meslo-lg-nerd-font; do
+for cask in wezterm nikitabobko/tap/aerospace alt-tab raycast maccy stats thaw; do
   install_cask "$cask"
 done
 
-# ── 4. Oh My Zsh ─────────────────────────────────────────────────────────────
+# ── 5. Oh My Zsh ─────────────────────────────────────────────────────────────
 step "Installing Oh My Zsh..."
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
   sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
@@ -64,7 +94,7 @@ else
   ok "Oh My Zsh already installed"
 fi
 
-# ── 5. Powerlevel10k theme ────────────────────────────────────────────────────
+# ── 6. Powerlevel10k theme ────────────────────────────────────────────────────
 step "Installing Powerlevel10k..."
 P10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
 if [ ! -d "$P10K_DIR" ]; then
@@ -74,7 +104,7 @@ else
   ok "Powerlevel10k already installed"
 fi
 
-# ── 6. zsh-autosuggestions plugin ─────────────────────────────────────────────
+# ── 7. zsh-autosuggestions plugin ─────────────────────────────────────────────
 step "Installing zsh-autosuggestions..."
 ZSH_AUTO_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
 if [ ! -d "$ZSH_AUTO_DIR" ]; then
@@ -84,7 +114,7 @@ else
   ok "zsh-autosuggestions already installed"
 fi
 
-# ── 7. Dotfiles ───────────────────────────────────────────────────────────────
+# ── 8. Dotfiles ───────────────────────────────────────────────────────────────
 step "Linking dotfiles..."
 mkdir -p "$HOME/.config"
 
@@ -108,7 +138,7 @@ touch "$HOME/.config/alias"
 
 ok "Dotfiles linked"
 
-# ── 8. App preferences ────────────────────────────────────────────────────────
+# ── 9. App preferences ────────────────────────────────────────────────────────
 step "Applying app preferences..."
 # Kill apps first so they don't overwrite the imported prefs on quit
 killall Stats 2>/dev/null || true
@@ -128,7 +158,7 @@ else
   warn "Thaw plist not found — skipping"
 fi
 
-# ── 9. Tmux ───────────────────────────────────────────────────────────────────
+# ── 10. Tmux ──────────────────────────────────────────────────────────────────
 step "Setting up Tmux..."
 # Run from its own directory so relative `cp` paths inside the script resolve correctly
 (cd "$SCRIPT_DIR/tmux-installer" && bash tmux-installer.sh)
