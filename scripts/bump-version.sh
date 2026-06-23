@@ -6,9 +6,17 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 DRY_RUN=false
-if [[ "${1:-}" == "--dry-run" ]]; then
-  DRY_RUN=true
-fi
+REPORT=false
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=true ;;
+    --report) REPORT=true ;;
+    *)
+      echo "error: unknown argument: $arg" >&2
+      exit 1
+      ;;
+  esac
+done
 
 VERSION_FILE="$REPO_ROOT/VERSION"
 README="$REPO_ROOT/README.md"
@@ -19,8 +27,33 @@ if [[ ! -f "$VERSION_FILE" ]]; then
   exit 1
 fi
 
+emit_report() {
+  local changed="$1"
+  local version="$2"
+  local bump_type="$3"
+  local reason="$4"
+
+  printf 'changed=%s\n' "$changed"
+  printf 'current=%s\n' "$current"
+  printf 'version=%s\n' "$version"
+  printf 'bump_type=%s\n' "$bump_type"
+  printf 'reason=%s\n' "$reason"
+}
+
 current="$(tr -d '[:space:]' < "$VERSION_FILE")"
+if [[ -n "${VERSION_BASE_REF:-}" ]]; then
+  current="$(git show "${VERSION_BASE_REF}:VERSION" 2>/dev/null | tr -d '[:space:]')"
+  if [[ -z "$current" ]]; then
+    echo "error: could not read VERSION from ${VERSION_BASE_REF}" >&2
+    exit 1
+  fi
+fi
 IFS=. read -r major minor patch <<< "$current"
+
+if [[ -z "${major:-}" || -z "${minor:-}" || -z "${patch:-}" ]]; then
+  echo "error: invalid VERSION value: ${current}" >&2
+  exit 1
+fi
 
 sed_inplace() {
   if [[ "$(uname -s)" == "Darwin" ]]; then
@@ -31,8 +64,9 @@ sed_inplace() {
 }
 
 # Skip re-entry when the latest commit is the automated version bump.
-head_msg="$(git log -1 --format=%s 2>/dev/null || true)"
-if [[ "$head_msg" == *"[skip version]"* ]]; then
+head_ref="${VERSION_HEAD_REF:-${GITHUB_SHA:-HEAD}}"
+head_msg="$(git log -1 --format=%s "$head_ref" 2>/dev/null || true)"
+if [[ "$REPORT" != true && "$head_msg" == *"[skip version]"* ]]; then
   echo "No bump: latest commit is an automated version bump"
   exit 0
 fi
@@ -40,18 +74,20 @@ fi
 # Commits to analyze: push range in CI, else since last VERSION change.
 commit_range=""
 if [[ -n "${GITHUB_EVENT_BEFORE:-}" && "${GITHUB_EVENT_BEFORE}" != "0000000000000000000000000000000000000000" ]]; then
-  commit_range="${GITHUB_EVENT_BEFORE}..${GITHUB_SHA:-HEAD}"
+  commit_range="${GITHUB_EVENT_BEFORE}..${head_ref}"
+elif [[ -n "${VERSION_BASE_REF:-}" ]]; then
+  commit_range="${VERSION_BASE_REF}..${head_ref}"
 else
   last_version_commit="$(git log -1 --format=%H -- VERSION 2>/dev/null || true)"
   if [[ -n "$last_version_commit" ]]; then
-    commit_range="${last_version_commit}..HEAD"
+    commit_range="${last_version_commit}..${head_ref}"
   fi
 fi
 
 if [[ -z "$commit_range" ]]; then
-  log_cmd=(git log --format=%s -20)
+  log_cmd=(git log --format=%s -20 "$head_ref")
 elif ! git rev-parse "${commit_range%%..*}" &>/dev/null 2>&1; then
-  log_cmd=(git log --format=%s -20)
+  log_cmd=(git log --format=%s -20 "$head_ref")
 else
   log_cmd=(git log --format=%s "$commit_range")
 fi
@@ -62,6 +98,10 @@ while IFS= read -r line; do
 done < <("${log_cmd[@]}" 2>/dev/null || true)
 
 if [[ ${#messages[@]} -eq 0 ]]; then
+  if [[ "$REPORT" == true ]]; then
+    emit_report "false" "$current" "none" "no commits to analyze"
+    exit 0
+  fi
   echo "No bump: no commits to analyze"
   exit 0
 fi
@@ -91,20 +131,33 @@ for msg in "${messages[@]}"; do
 done
 
 if [[ $bump_level -eq 0 ]]; then
+  if [[ "$REPORT" == true ]]; then
+    emit_report "false" "$current" "none" "no conventional commits found in range"
+    exit 0
+  fi
   echo "No bump: no conventional commits found in range"
   exit 0
 fi
 
 case $bump_level in
-  3) major=$((major + 1)); minor=0; patch=0 ;;
-  2) minor=$((minor + 1)); patch=0 ;;
-  1) patch=$((patch + 1)) ;;
+  3) major=$((major + 1)); minor=0; patch=0; bump_type="major" ;;
+  2) minor=$((minor + 1)); patch=0; bump_type="minor" ;;
+  1) patch=$((patch + 1)); bump_type="patch" ;;
 esac
 
 new_version="${major}.${minor}.${patch}"
 
 if [[ "$new_version" == "$current" ]]; then
+  if [[ "$REPORT" == true ]]; then
+    emit_report "false" "$current" "none" "already at ${current}"
+    exit 0
+  fi
   echo "No bump: already at ${current}"
+  exit 0
+fi
+
+if [[ "$REPORT" == true ]]; then
+  emit_report "true" "$new_version" "$bump_type" "conventional commits require ${bump_type} bump"
   exit 0
 fi
 

@@ -1,21 +1,148 @@
 name: Bump version
 
 on:
+  workflow_dispatch:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: version-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  bump:
+  validate:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip version]')"
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate version script
+        run: |
+          bash -n scripts/bump-version.sh
+          bash scripts/bump-version.sh --dry-run
+          VERSION_BASE_REF=origin/main VERSION_HEAD_REF=HEAD scripts/bump-version.sh --report
+
+      - name: Validate deploy key
+        env:
+          VERSION_BUMP_SSH_KEY: ${{ secrets.VERSION_BUMP_SSH_KEY }}
+        run: |
+          test -n "$VERSION_BUMP_SSH_KEY"
+          eval "$(ssh-agent -s)"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          printf '%s\n' "$VERSION_BUMP_SSH_KEY" | tr -d '\r' | ssh-add -
+          git remote set-url origin git@github.com:felipe0328/power_mac.git
+          git ls-remote origin HEAD >/dev/null
+          git push --dry-run origin HEAD:main
+
+  preview:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+
+      - name: Fetch pull request head
+        run: |
+          git fetch origin "${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}"
+          git fetch --no-tags origin "refs/pull/${{ github.event.pull_request.number }}/head:refs/remotes/pull/${{ github.event.pull_request.number }}/head"
+
+      - name: Calculate version preview
+        id: preview
+        env:
+          VERSION_BASE_REF: origin/${{ github.event.pull_request.base.ref }}
+          VERSION_HEAD_REF: refs/remotes/pull/${{ github.event.pull_request.number }}/head
+        run: |
+          chmod +x scripts/bump-version.sh
+          scripts/bump-version.sh --report >> "$GITHUB_OUTPUT"
+
+      - name: Comment version preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CHANGED: ${{ steps.preview.outputs.changed }}
+          CURRENT_VERSION: ${{ steps.preview.outputs.current }}
+          NEXT_VERSION: ${{ steps.preview.outputs.version }}
+          BUMP_TYPE: ${{ steps.preview.outputs.bump_type }}
+          REASON: ${{ steps.preview.outputs.reason }}
+        run: |
+          marker="<!-- power-mac-version-preview -->"
+          body_file="$(mktemp)"
+
+          if [[ "$CHANGED" == "true" ]]; then
+            {
+              printf '%s\n' "$marker"
+              printf '## Version preview\n\n'
+              printf '| Current | Expected after merge | Bump |\n'
+              printf '| --- | --- | --- |\n'
+              printf "| \`%s\` | \`%s\` | \`%s\` |\n\n" "$CURRENT_VERSION" "$NEXT_VERSION" "$BUMP_TYPE"
+              printf "This PR will trigger a version bump after it is merged into \`main\`.\n\n"
+              printf '> %s.\n' "$REASON"
+            } > "$body_file"
+          else
+            {
+              printf '%s\n' "$marker"
+              printf '## Version preview\n\n'
+              printf '| Current | Expected after merge | Bump |\n'
+              printf '| --- | --- | --- |\n'
+              printf "| \`%s\` | \`%s\` | none |\n\n" "$CURRENT_VERSION" "$CURRENT_VERSION"
+              printf "No version bump will be created after this PR is merged into \`main\`.\n\n"
+              printf '> %s.\n' "$REASON"
+            } > "$body_file"
+          fi
+
+          body="$(cat "$body_file")"
+          comment_id="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"${marker}\"))) | .id" \
+            | tail -n 1)"
+
+          if [[ -n "$comment_id" ]]; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -f body="$body" >/dev/null
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null
+          fi
+
+  bump:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[skip version]')
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure version bump deploy key
+        env:
+          VERSION_BUMP_SSH_KEY: ${{ secrets.VERSION_BUMP_SSH_KEY }}
+        run: |
+          test -n "$VERSION_BUMP_SSH_KEY"
+          eval "$(ssh-agent -s)"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          printf '%s\n' "$VERSION_BUMP_SSH_KEY" | tr -d '\r' | ssh-add -
+          echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=${SSH_AGENT_PID}" >> "$GITHUB_ENV"
+          git remote set-url origin git@github.com:felipe0328/power_mac.git
+          git ls-remote origin HEAD >/dev/null
 
       - name: Bump version from conventional commits
         id: bump
@@ -39,4 +166,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add VERSION README.md install.sh
           git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip version]"
-          git push
+          git push --dry-run origin HEAD:main
+          git push origin HEAD:main
