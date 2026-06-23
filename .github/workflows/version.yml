@@ -2,6 +2,11 @@ name: Bump version
 
 on:
   workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to validate, for example a PR branch name
+        required: false
+        default: ""
   pull_request_target:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
@@ -22,10 +27,16 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.ref || github.ref }}
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Validate workflows
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@latest
+          "$(go env GOPATH)/bin/actionlint" .github/workflows/*.yml
 
       - name: Validate version script
         run: |
@@ -70,9 +81,9 @@ jobs:
     permissions:
       contents: read
       issues: write
-      pull-requests: read
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 0
@@ -129,20 +140,39 @@ jobs:
           body="$(cat "$body_file")"
           echo "$body" >> "$GITHUB_STEP_SUMMARY"
 
+          posted=false
           comments_file="$(mktemp)"
-          if ! gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" > "$comments_file"; then
+          if gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" > "$comments_file"; then
+            comment_id="$(jq -r ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"${marker}\"))) | .id" "$comments_file" | tail -n 1)"
+
+            if [[ -n "$comment_id" ]]; then
+              gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -f body="$body" >/dev/null \
+                && posted=true \
+                || echo "Could not update PR issue comment; trying PR review summary."
+            else
+              gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null \
+                && posted=true \
+                || echo "Could not create PR issue comment; trying PR review summary."
+            fi
+          else
             echo "Could not read PR comments; version preview was written to the job summary."
-            exit 0
           fi
 
-          comment_id="$(jq -r ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"${marker}\"))) | .id" "$comments_file" | tail -n 1)"
+          if [[ "$posted" != true ]]; then
+            reviews_file="$(mktemp)"
+            if gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews" > "$reviews_file"; then
+              review_id="$(jq -r ".[] | select(.user.login == \"github-actions[bot]\" and ((.body // \"\") | contains(\"${marker}\"))) | .id" "$reviews_file" | tail -n 1)"
 
-          if [[ -n "$comment_id" ]]; then
-            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -f body="$body" >/dev/null \
-              || echo "Could not update PR comment; version preview was written to the job summary."
-          else
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body" >/dev/null \
-              || echo "Could not create PR comment; version preview was written to the job summary."
+              if [[ -n "$review_id" ]]; then
+                gh api --method PUT "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews/${review_id}" -f body="$body" >/dev/null \
+                  || echo "Could not update PR review summary; version preview was written to the job summary."
+              else
+                gh api --method POST "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews" -f event=COMMENT -f body="$body" >/dev/null \
+                  || echo "Could not create PR review summary; version preview was written to the job summary."
+              fi
+            else
+              echo "Could not read PR reviews; version preview was written to the job summary."
+            fi
           fi
 
   bump:
@@ -151,7 +181,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           persist-credentials: false
