@@ -6,7 +6,7 @@
 
 *Dotfiles, apps, terminal setup, window management — all automated.*
 
-![Version](https://img.shields.io/badge/version-1.0.1-blueviolet?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.0.2-blueviolet?style=flat-square)
 ![macOS](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)
 ![Shell](https://img.shields.io/badge/shell-zsh-informational?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -69,6 +69,7 @@ cd ~/power_conf
 | `📄 .zshrc` | `~/.zshrc` | Zsh config with Oh My Zsh, plugins, and PATH setup |
 | `🎨 .p10k.zsh` | `~/.p10k.zsh` | Powerlevel10k prompt layout and segments |
 | `📤 exports` | `~/.config/exports` | Environment variable exports |
+| `⌨️ alias` | `~/.config/alias` | Common zsh aliases (git, docker, tmux, tools) |
 | `🌌 .aerospace.toml` | `~/.aerospace.toml` | AeroSpace workspace and keybinding config |
 | `🖥️ wezterm.lua` | `~/.config/wezterm/wezterm.lua` | WezTerm terminal font, theme, and UI settings |
 | `💚 nvim/` | `~/.config/nvim/` | Full LazyVim-based Neovim configuration |
@@ -92,12 +93,12 @@ cd ~/power_conf
 ## 📝 Notes
 
 - After the install, run `exec zsh` or restart your terminal to apply all changes
-- `~/.config/alias` is created as an empty stub — fill it in with your personal aliases
+- Work-specific aliases can go in `~/.config/goodrx_alias` (loaded before `~/.config/alias`)
 
 ---
 
 <div align="center">
 
-Made with ❤️ for a productive Mac setup &nbsp;•&nbsp; **v1.0.1**
+Made with ❤️ for a productive Mac setup &nbsp;•&nbsp; **v1.0.2**
 
 </div>

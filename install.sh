@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version: 1.0.1
+# Version: 1.0.2
 
 set -e
 
@@ -122,6 +122,7 @@ ln -sf "$SCRIPT_DIR/.zshrc"         "$HOME/.zshrc"
 ln -sf "$SCRIPT_DIR/.p10k.zsh"      "$HOME/.p10k.zsh"
 ln -sf "$SCRIPT_DIR/.aerospace.toml" "$HOME/.aerospace.toml"
 ln -sf "$SCRIPT_DIR/exports"        "$HOME/.config/exports"
+ln -sf "$SCRIPT_DIR/alias"          "$HOME/.config/alias"
 
 mkdir -p "$HOME/.config/wezterm"
 ln -sf "$SCRIPT_DIR/wezterm.lua" "$HOME/.config/wezterm/wezterm.lua"
@@ -132,9 +133,6 @@ if [ -d "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then
   mv "$HOME/.config/nvim" "$HOME/.config/nvim.bak"
 fi
 ln -sf "$SCRIPT_DIR/nvim" "$HOME/.config/nvim"
-
-# Create an empty alias stub so .zshrc doesn't error on first launch
-touch "$HOME/.config/alias"
 
 ok "Dotfiles linked"
 
@@ -147,4 +145,4 @@ ok "Tmux configured"
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo -e "\n${GREEN}All done!${NC}"
 echo -e "  Restart your terminal (or run ${BLUE}exec zsh${NC}) to apply all changes."
-echo -e "  ${YELLOW}Note:${NC} Fill in ~/.config/alias with your personal entries.\n"
+echo -e "  ${YELLOW}Note:${NC} Edit ~/.config/alias or ~/.config/goodrx_alias for extra aliases.\n"
