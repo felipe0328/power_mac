@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Enforce Conventional Commits (see CONTRIBUTOR.md).
+set -euo pipefail
+
+commit_msg_file="$1"
+first_line="$(head -n1 "$commit_msg_file")"
+
+# Allow merge commits and automated version bumps.
+if [[ "$first_line" =~ ^Merge[[:space:]] ]]; then
+  exit 0
+fi
+if [[ "$first_line" == *"[skip version]"* ]]; then
+  exit 0
+fi
+
+pattern='^(breaking|feat|fix|chore|docs|refactor|perf|test|ci|build|revert)(\([^)]+\))?!?: .+'
+
+if [[ "$first_line" =~ $pattern ]]; then
+  exit 0
+fi
+
+cat >&2 <<'EOF'
+commit-msg hook: invalid commit message format.
+
+First line must use Conventional Commits, for example:
+  feat: add wezterm config
+  fix: correct aerospace workspace names
+  feat!: remove ghostty support
+  breaking: change install paths
+
+Allowed prefixes: breaking, feat, fix, chore, docs, refactor, perf, test, ci, build, revert
+Use "!:" after the type for breaking changes (e.g. feat!:).
+
+See CONTRIBUTOR.md for details.
+EOF
+exit 1

@@ -84,6 +84,7 @@ link_config "$SCRIPT_DIR/.p10k.zsh"       "$HOME/.p10k.zsh"
 link_config "$SCRIPT_DIR/.aerospace.toml" "$HOME/.aerospace.toml"
 link_config "$SCRIPT_DIR/exports"         "$HOME/.config/exports"
 link_config "$SCRIPT_DIR/alias"           "$HOME/.config/alias"
+bash "$SCRIPT_DIR/scripts/install-hooks.sh" || fail "Could not install git hooks"
 link_config "$SCRIPT_DIR/nvim"            "$HOME/.config/nvim"
 
 # ── 2. WezTerm ────────────────────────────────────────────────────────────────

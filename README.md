@@ -6,7 +6,7 @@
 
 *Dotfiles, apps, terminal setup, window management — all automated.*
 
-![Version](https://img.shields.io/badge/version-1.0.2-blueviolet?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.1.1-blueviolet?style=flat-square)
 ![macOS](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)
 ![Shell](https://img.shields.io/badge/shell-zsh-informational?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -86,7 +86,8 @@ cd ~/power_conf
 5. 🐚 Installs **Oh My Zsh** and the **Powerlevel10k** theme
 6. 🔌 Installs **zsh-autosuggestions** plugin
 7. 🔗 **Symlinks** all dotfiles to their correct locations
-8. 🪟 Runs the interactive **Tmux installer**
+8. 🪝 Installs **git hooks** for conventional commit messages
+9. 🪟 Runs the interactive **Tmux installer**
 
 ---
 
@@ -94,11 +95,12 @@ cd ~/power_conf
 
 - After the install, run `exec zsh` or restart your terminal to apply all changes
 - Work-specific aliases can go in `~/.config/goodrx_alias` (loaded before `~/.config/alias`)
+- Contributing? See [CONTRIBUTOR.md](CONTRIBUTOR.md) for commit format, versioning, and PR workflow.
 
 ---
 
 <div align="center">
 
-Made with ❤️ for a productive Mac setup &nbsp;•&nbsp; **v1.0.2**
+Made with ❤️ for a productive Mac setup &nbsp;•&nbsp; **v1.1.1**
 
 </div>
