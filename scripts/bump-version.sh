@@ -41,6 +41,7 @@ emit_report() {
 }
 
 current="$(tr -d '[:space:]' < "$VERSION_FILE")"
+# Preview mode reads the version from the trusted base ref, not from a fork's tree.
 if [[ -n "${VERSION_BASE_REF:-}" ]]; then
   current="$(git show "${VERSION_BASE_REF}:VERSION" 2>/dev/null | tr -d '[:space:]')"
   if [[ -z "$current" ]]; then
@@ -71,7 +72,8 @@ if [[ "$REPORT" != true && "$head_msg" == *"[skip version]"* ]]; then
   exit 0
 fi
 
-# Commits to analyze: push range in CI, else since last VERSION change.
+# Prefer the exact pushed range in CI. PR previews provide base/head refs, while
+# local runs fall back to commits made since VERSION last changed.
 commit_range=""
 if [[ -n "${GITHUB_EVENT_BEFORE:-}" && "${GITHUB_EVENT_BEFORE}" != "0000000000000000000000000000000000000000" ]]; then
   commit_range="${GITHUB_EVENT_BEFORE}..${head_ref}"
@@ -117,6 +119,7 @@ for msg in "${messages[@]}"; do
   if [[ "$msg" == *"[skip version]"* ]]; then
     continue
   fi
+  # Keep this precedence aligned with the Semver table in CONTRIBUTOR.md.
   if [[ "$msg" =~ ^breaking: ]] || [[ "$msg" =~ ^feat(\(.+\))?!: ]] || [[ "$msg" =~ ^fix(\(.+\))?!: ]] || [[ "$msg" == *"BREAKING CHANGE"* ]]; then
     bump_level=3
     continue

@@ -6,6 +6,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOOKS_DIR="$REPO_ROOT/.githooks"
 
 chmod +x "$HOOKS_DIR/commit-msg"
+# A repository-local hooks path avoids changing the contributor's global Git setup.
 git -C "$REPO_ROOT" config core.hooksPath .githooks
 
 echo "Git hooks installed (core.hooksPath=.githooks)"

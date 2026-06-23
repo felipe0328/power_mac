@@ -13,6 +13,7 @@ if [[ "$first_line" == *"[skip version]"* ]]; then
   exit 0
 fi
 
+# Keep the accepted types aligned with scripts/bump-version.sh and CONTRIBUTOR.md.
 pattern='^(breaking|feat|fix|chore|docs|refactor|perf|test|ci|build|revert)(\([^)]+\))?!?: .+'
 
 if [[ "$first_line" =~ $pattern ]]; then
