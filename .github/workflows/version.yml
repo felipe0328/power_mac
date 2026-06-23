@@ -7,6 +7,10 @@ on:
         description: Git ref to validate, for example a PR branch name
         required: false
         default: ""
+      pr_number:
+        description: Pull request number to preview and comment on
+        required: false
+        default: ""
   pull_request_target:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
@@ -77,35 +81,37 @@ jobs:
 
   preview:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request_target'
+    if: github.event_name == 'pull_request_target' || inputs.pr_number != ''
     permissions:
       contents: read
       issues: write
       pull-requests: write
+    env:
+      BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+      CHECKOUT_REF: ${{ github.event.pull_request.base.ref || inputs.ref || github.ref }}
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.base.ref }}
+          ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
 
       - name: Fetch pull request head
         run: |
-          git fetch origin "${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}"
-          git fetch --no-tags origin "refs/pull/${{ github.event.pull_request.number }}/head:refs/remotes/pull/${{ github.event.pull_request.number }}/head"
+          git fetch origin "${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+          git fetch --no-tags origin "refs/pull/${PR_NUMBER}/head:refs/remotes/pull/${PR_NUMBER}/head"
 
       - name: Calculate version preview
         id: preview
-        env:
-          VERSION_BASE_REF: origin/${{ github.event.pull_request.base.ref }}
-          VERSION_HEAD_REF: refs/remotes/pull/${{ github.event.pull_request.number }}/head
         run: |
           chmod +x scripts/bump-version.sh
-          scripts/bump-version.sh --report >> "$GITHUB_OUTPUT"
+          VERSION_BASE_REF="origin/${BASE_REF}" \
+            VERSION_HEAD_REF="refs/remotes/pull/${PR_NUMBER}/head" \
+            scripts/bump-version.sh --report >> "$GITHUB_OUTPUT"
 
       - name: Comment version preview
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
           CHANGED: ${{ steps.preview.outputs.changed }}
           CURRENT_VERSION: ${{ steps.preview.outputs.current }}
           NEXT_VERSION: ${{ steps.preview.outputs.version }}
