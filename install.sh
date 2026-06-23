@@ -136,7 +136,12 @@ ln -sf "$SCRIPT_DIR/nvim" "$HOME/.config/nvim"
 
 ok "Dotfiles linked"
 
-# ── 9. Tmux ──────────────────────────────────────────────────────────────────
+# ── 9. Git hooks ──────────────────────────────────────────────────────────────
+step "Installing git hooks..."
+bash "$SCRIPT_DIR/scripts/install-hooks.sh"
+ok "Git hooks installed"
+
+# ── 10. Tmux ─────────────────────────────────────────────────────────────────
 step "Setting up Tmux..."
 # Run from its own directory so relative `cp` paths inside the script resolve correctly
 (cd "$SCRIPT_DIR/tmux-installer" && bash tmux-installer.sh)

@@ -1,0 +1,42 @@
+name: Bump version
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip version]')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump version from conventional commits
+        id: bump
+        env:
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          chmod +x scripts/bump-version.sh
+          scripts/bump-version.sh
+          if git diff --quiet VERSION README.md install.sh; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "version=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push version bump
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION README.md install.sh
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip version]"
+          git push
