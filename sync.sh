@@ -1,102 +1,96 @@
-#!/bin/bash
-#
-# sync.sh — push config changes from this repo onto your machine.
-#
-# Use this after you edit a config in this folder (e.g. wezterm.lua) and
-# want the change applied to your computer. It does NOT install anything; it
-# only refreshes the symlinks that install.sh originally set up.
-#
-# It keeps going if a single item fails and prints a summary at the end.
+#!/usr/bin/env bash
 
-# Note: intentionally NOT using `set -e` so one failing step doesn't abort the
-# whole sync. We track failures manually and exit non-zero if any occurred.
-set -uo pipefail
+set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+POWER_MAC_ROOT="$SCRIPT_DIR"
+# shellcheck source=lib/core.sh
+source "$SCRIPT_DIR/lib/core.sh"
 
-# ── Colors ────────────────────────────────────────────────────────────────────
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
+show_help() {
+  cat <<'EOF'
+Usage:
+  ./sync.sh
+  ./sync.sh --all [--dry-run]
+  ./sync.sh --components ID,ID,... [--dry-run]
 
-step() { echo -e "\n${BLUE}==>${NC} $1"; }
-ok()   { echo -e "  ${GREEN}✓${NC} $1"; }
-warn() { echo -e "  ${YELLOW}!${NC} $1"; }
-err()  { echo -e "  ${RED}✗${NC} $1"; }
+Without selection flags, sync.sh reads the components recorded by install.sh.
 
-FAILURES=0
-fail() { err "$1"; FAILURES=$((FAILURES + 1)); }
+Options:
+  --all                 Sync every selectable component configuration.
+  --components LIST     Sync a comma-separated list of component IDs.
+  --dry-run             Show config changes without writing them.
+  --help                Show this help.
+EOF
+}
 
-# Back up a path if it exists and is a real file/dir (not the symlink we manage).
-backup_if_real() {
-  local target="$1"
-  if [ -e "$target" ] && [ ! -L "$target" ]; then
-    local bak
-    bak="${target}.bak.$(date +%Y%m%d%H%M%S)"
-    if mv "$target" "$bak"; then
-      warn "Existing $(basename "$target") was a real file — backed up to $bak"
-    else
-      fail "Could not back up $target"
-      return 1
+SELECTION_MODE="state"
+COMPONENTS_ARGUMENT=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --all)
+      [ "$SELECTION_MODE" = state ] || pm_die "--all conflicts with --components"
+      SELECTION_MODE="all"
+      ;;
+    --components)
+      [ "$#" -ge 2 ] || pm_die "--components requires a comma-separated value"
+      [ "$SELECTION_MODE" = state ] || pm_die "--components conflicts with --all"
+      SELECTION_MODE="components"
+      COMPONENTS_ARGUMENT="$2"
+      shift
+      ;;
+    --dry-run) POWER_MAC_DRY_RUN=true ;;
+    --help|-h)
+      show_help
+      exit 0
+      ;;
+    *) pm_die "Unknown argument '$1'. Run ./sync.sh --help." ;;
+  esac
+  shift
+done
+
+pm_load_components
+SELECTED_COMPONENTS=()
+if pm_load_state; then
+  POWER_MAC_TMUX_STYLE="$PM_STATE_TMUX_STYLE"
+fi
+
+case "$SELECTION_MODE" in
+  all)
+    while IFS= read -r id; do
+      [ -n "$id" ] && SELECTED_COMPONENTS+=("$id")
+    done < <(pm_selectable_component_ids)
+    ;;
+  components)
+    pm_split_csv "$COMPONENTS_ARGUMENT" SELECTED_COMPONENTS
+    ;;
+  state)
+    if [ "${#PM_STATE_COMPONENTS[@]}" -eq 0 ]; then
+      pm_die "No saved component state. Run ./install.sh or use sync.sh --all/--components."
     fi
+    SELECTED_COMPONENTS=("${PM_STATE_COMPONENTS[@]}")
+    ;;
+esac
+
+pm_validate_selected_ids "${SELECTED_COMPONENTS[@]}"
+pm_resolve_components "${SELECTED_COMPONENTS[@]}" >/dev/null
+RESOLVED_COMPONENTS=("${PM_RESOLVED_COMPONENTS[@]}")
+
+FAILURES=()
+for id in "${RESOLVED_COMPONENTS[@]}"; do
+  configs="$(pm_component_field "$id" COMPONENT_CONFIGS)"
+  sync_hook="$(pm_component_field "$id" COMPONENT_SYNC_HOOKS)"
+  [ -n "$configs" ] || [ -n "$sync_hook" ] || continue
+  pm_step "Syncing $(pm_component_field "$id" COMPONENT_LABELS)"
+  if ! pm_sync_component "$id"; then
+    FAILURES+=("$id")
   fi
-}
+done
 
-# link_config <source-in-repo> <destination-on-machine>
-# Points the destination at the repo file so future edits stay in sync.
-link_config() {
-  local src="$1" dest="$2"
-
-  if [ ! -e "$src" ]; then
-    fail "Source missing, skipped: $src"
-    return 1
-  fi
-
-  if ! mkdir -p "$(dirname "$dest")"; then
-    fail "Could not create directory for $dest"
-    return 1
-  fi
-
-  # If the destination is already a symlink to the right place, nothing to do.
-  if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$src" ]; then
-    ok "$(basename "$dest") already up to date"
-    return 0
-  fi
-
-  backup_if_real "$dest" || return 1
-
-  if ln -sf "$src" "$dest"; then
-    ok "Synced $(basename "$dest")"
-  else
-    fail "Could not link $dest -> $src"
-    return 1
-  fi
-}
-
-# ── 1. Dotfiles ───────────────────────────────────────────────────────────────
-step "Syncing dotfiles..."
-mkdir -p "$HOME/.config" || fail "Could not create ~/.config"
-
-link_config "$SCRIPT_DIR/.zshrc"          "$HOME/.zshrc"
-link_config "$SCRIPT_DIR/.p10k.zsh"       "$HOME/.p10k.zsh"
-link_config "$SCRIPT_DIR/.aerospace.toml" "$HOME/.aerospace.toml"
-link_config "$SCRIPT_DIR/exports"         "$HOME/.config/exports"
-link_config "$SCRIPT_DIR/alias"           "$HOME/.config/alias"
-bash "$SCRIPT_DIR/scripts/install-hooks.sh" || fail "Could not install git hooks"
-link_config "$SCRIPT_DIR/nvim"            "$HOME/.config/nvim"
-
-# ── 2. WezTerm ────────────────────────────────────────────────────────────────
-step "Syncing WezTerm config..."
-link_config "$SCRIPT_DIR/wezterm.lua" "$HOME/.config/wezterm/wezterm.lua"
-
-# ── Summary ───────────────────────────────────────────────────────────────────
-if [ "$FAILURES" -eq 0 ]; then
-  echo -e "\n${GREEN}Configs synced successfully.${NC}"
-  echo -e "  Restart affected apps (or run ${BLUE}exec zsh${NC}) to pick up changes.\n"
-  exit 0
-else
-  echo -e "\n${RED}Sync finished with $FAILURES issue(s).${NC} See the ${RED}✗${NC} lines above.\n"
+if [ "${#FAILURES[@]}" -gt 0 ]; then
+  pm_error "Sync failed for: $(pm_join_by , "${FAILURES[@]}")"
   exit 1
 fi
+
+printf '\n%sSelected configurations are in sync.%s\n\n' "$PM_GREEN" "$PM_RESET"

@@ -141,6 +141,25 @@ The [version workflow](.github/workflows/version.yml) has two stages:
 Do **not** edit the version files manually in a PR. Use the preview comment to
 confirm the expected version before merging.
 
+### Installer components
+
+The installer and config sync command auto-discover `components/*.sh`. Add one
+module for each normal Homebrew formula or cask instead of adding package-specific
+branches to `install.sh` or `sync.sh`.
+
+Each module calls `component_define` with its metadata, dependencies, package
+type, optional config mappings, and optional custom hooks. Use a custom hook only
+when the declarative formula/cask behavior is insufficient. The shared registry
+validates IDs, dependencies, cycles, hooks, and mappings before doing work.
+
+Before opening a PR that changes installer behavior, run:
+
+```bash
+bash -n install.sh sync.sh lib/core.sh components/*.sh
+shellcheck install.sh sync.sh lib/core.sh components/*.sh
+./install.sh --all --dry-run
+```
+
 ### Preview locally
 
 ```bash

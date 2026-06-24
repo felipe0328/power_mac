@@ -1,9 +1,17 @@
- # Tmux Installer V1.0
+# Tmux configuration
 
-This project aims to easily install tmux on different terminals having the same behavior, for that just run
-`./tmux-installer.sh`
+Tmux is managed by the main power_mac component system:
 
-after that you just need to open tmux running `tmux` in your terminal, and install the plugins, running `prefix + I`
-prefix means the activation button, it can be ctrl+b (by default)  or ctrl+a.
+```bash
+./install.sh --components tmux --tmux-style bottom
+./install.sh --components tmux --tmux-style top
+```
 
-Enjoy it!.
+The compatibility wrapper in this directory accepts the style as its argument:
+
+```bash
+./tmux-installer/tmux-installer.sh top
+```
+
+The installer preserves existing real `~/.tmux.conf` files as timestamped
+backups and never deletes an existing TPM checkout.
