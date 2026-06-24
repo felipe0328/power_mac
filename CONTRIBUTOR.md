@@ -130,7 +130,9 @@ The canonical version lives in [`VERSION`](VERSION). The README badge and `insta
 The [version workflow](.github/workflows/version.yml) has two stages:
 
 1. On a pull request, including one from a fork, it reads commit messages without
-   running code from the PR and posts the expected version as a PR comment.
+   fetching or running code from the PR and posts the expected version as a PR
+   comment. Commit subjects are retrieved through the GitHub API while the job
+   runs trusted code from `main`.
 2. After the PR is merged, it reads the commits pushed to `main`, applies the
    highest required bump, and updates `VERSION`, `README.md`, and `install.sh`.
 3. It commits `chore: bump version to X.Y.Z [skip version]` back to `main`.
