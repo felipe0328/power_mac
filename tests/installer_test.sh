@@ -57,6 +57,12 @@ EOF
   cat > "$directory/git" <<'EOF'
 #!/usr/bin/env bash
 printf 'git %s\n' "$*" >> "${POWER_MAC_TEST_LOG:?}"
+if [ "${POWER_MAC_FAIL_HOOKS:-false}" = true ] &&
+  [ "$1" = -C ] &&
+  [ "$3" = config ] &&
+  [ "$4" = core.hooksPath ]; then
+  exit 1
+fi
 if [ "$1" = clone ]; then
   destination="${@: -1}"
   mkdir -p "$destination/.git"
@@ -119,6 +125,7 @@ run_sync() {
   HOME="$home" \
     PATH="$TEST_TMP/fake-bin:$PATH" \
     POWER_MAC_TEST_LOG="$TEST_TMP/commands.log" \
+    POWER_MAC_FAIL_HOOKS="${POWER_MAC_FAIL_HOOKS:-false}" \
     "$ROOT/sync.sh" "$@"
 }
 
@@ -179,12 +186,59 @@ else
   fail "saved-state sync touches only recorded component configs"
 fi
 
+legacy_home="$TEST_TMP/home-legacy-detected"
+mkdir -p "$legacy_home/.config/wezterm" "$legacy_home/.config"
+ln -s "$ROOT/wezterm.lua" "$legacy_home/.config/wezterm/wezterm.lua"
+ln -s "$ROOT/nvim" "$legacy_home/.config/nvim"
+: > "$TEST_TMP/commands.log"
+output="$(run_sync "$legacy_home")"
+if assert_contains "$output" "detected legacy power_mac configs: wezterm,neovim" &&
+  assert_file_contains "$legacy_home/.config/power_mac/state" "components=wezterm,neovim" &&
+  assert_file_contains "$TEST_TMP/commands.log" "config core.hooksPath .githooks" &&
+  [ ! -e "$legacy_home/.zshrc" ] &&
+  [ ! -e "$legacy_home/.aerospace.toml" ]; then
+  pass "legacy migration reinstalls hooks before saving state"
+else
+  fail "legacy migration reinstalls hooks before saving state"
+fi
+
 empty_home="$TEST_TMP/home-no-state"
 mkdir -p "$empty_home"
-if run_sync "$empty_home" >/dev/null 2>&1; then
-  fail "sync without state or explicit selection is rejected"
+output="$(run_sync "$empty_home")"
+if assert_contains "$output" "using the legacy sync configuration" &&
+  [ -L "$empty_home/.zshrc" ] &&
+  [ -L "$empty_home/.config/wezterm/wezterm.lua" ] &&
+  [ -L "$empty_home/.config/nvim" ] &&
+  [ -L "$empty_home/.aerospace.toml" ] &&
+  [ ! -e "$empty_home/.tmux.conf" ] &&
+  assert_file_contains "$empty_home/.config/power_mac/state" "components=shell,wezterm,neovim,aerospace"; then
+  pass "sync without state falls back to the legacy config set"
 else
-  pass "sync without state or explicit selection is rejected"
+  fail "sync without state falls back to the legacy config set"
+fi
+
+dry_migration_home="$TEST_TMP/home-legacy-dry"
+mkdir -p "$dry_migration_home/.config/wezterm"
+ln -s "$ROOT/wezterm.lua" "$dry_migration_home/.config/wezterm/wezterm.lua"
+: > "$TEST_TMP/commands.log"
+output="$(run_sync "$dry_migration_home" --dry-run)"
+if assert_contains "$output" "Would install this repository's Git hooks" &&
+  [ ! -e "$dry_migration_home/.config/power_mac/state" ] &&
+  [ ! -s "$TEST_TMP/commands.log" ]; then
+  pass "legacy migration dry-run reports hooks without side effects"
+else
+  fail "legacy migration dry-run reports hooks without side effects"
+fi
+
+failed_hooks_home="$TEST_TMP/home-legacy-hook-failure"
+mkdir -p "$failed_hooks_home/.config/wezterm"
+ln -s "$ROOT/wezterm.lua" "$failed_hooks_home/.config/wezterm/wezterm.lua"
+if POWER_MAC_FAIL_HOOKS=true run_sync "$failed_hooks_home" >/dev/null 2>&1; then
+  fail "hook failure makes legacy migration fail"
+elif [ ! -e "$failed_hooks_home/.config/power_mac/state" ]; then
+  pass "hook failure prevents migrated state persistence"
+else
+  fail "hook failure prevents migrated state persistence"
 fi
 
 home="$TEST_TMP/home-backup"

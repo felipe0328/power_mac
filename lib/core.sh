@@ -373,6 +373,58 @@ pm_sync_declared_configs() {
   done <<< "$configs"
 }
 
+pm_paths_match() {
+  local first="$1"
+  local second="$2"
+  local first_dir second_dir first_path second_path
+
+  first_dir="$(cd "$(dirname "$first")" 2>/dev/null && pwd -P)" || return 1
+  second_dir="$(cd "$(dirname "$second")" 2>/dev/null && pwd -P)" || return 1
+  first_path="$first_dir/$(basename "$first")"
+  second_path="$second_dir/$(basename "$second")"
+  [ "$first_path" = "$second_path" ]
+}
+
+pm_symlink_points_to() {
+  local destination="$1"
+  local expected_source="$2"
+  [ -L "$destination" ] || return 1
+
+  local link_target
+  link_target="$(readlink "$destination")" || return 1
+  case "$link_target" in
+    /*) ;;
+    *) link_target="$(dirname "$destination")/$link_target" ;;
+  esac
+  pm_paths_match "$link_target" "$expected_source"
+}
+
+pm_component_has_managed_config() {
+  local id="$1"
+  local configs line source_path destination
+  configs="$(pm_component_field "$id" COMPONENT_CONFIGS)"
+  [ -n "$configs" ] || return 1
+
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    IFS='|' read -r source_path destination <<< "$line"
+    if pm_symlink_points_to "$HOME/$destination" "$POWER_MAC_ROOT/$source_path"; then
+      return 0
+    fi
+  done <<< "$configs"
+  return 1
+}
+
+pm_detect_legacy_components() {
+  local id
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    if pm_component_has_managed_config "$id"; then
+      printf '%s\n' "$id"
+    fi
+  done < <(pm_selectable_component_ids)
+}
+
 pm_install_brew_component() {
   local id="$1"
   local kind package installed_name
