@@ -134,21 +134,21 @@ elif [ "$SELECTION_MODE" = components ]; then
 else
   pm_ui_selection_header
   menu_options=()
-  default_components=()
+  default_menu_labels=()
   for ((i = 0; i < ${#COMPONENT_IDS[@]}; i++)); do
     [ "${COMPONENT_HIDDEN[$i]}" = false ] || continue
-    [ "${COMPONENT_DEFAULTS[$i]}" = false ] || default_components+=("${COMPONENT_IDS[$i]}")
-    printf -v menu_label "  %-19s %-18s %s:%s" \
+    menu_description="${COMPONENT_DESCRIPTIONS[$i]//,/;}"
+    printf -v menu_label "  %-19s %-18s %s" \
       "${COMPONENT_CATEGORIES[$i]}" \
       "${COMPONENT_LABELS[$i]}" \
-      "${COMPONENT_DESCRIPTIONS[$i]}" \
-      "${COMPONENT_IDS[$i]}"
-    menu_options+=("$menu_label")
+      "$menu_description"
+    menu_options+=("${menu_label}:${COMPONENT_IDS[$i]}")
+    [ "${COMPONENT_DEFAULTS[$i]}" = false ] || default_menu_labels+=("$menu_label")
   done
   selection_output="$(
     gum choose \
       --no-limit \
-      --selected "$(pm_join_by , "${default_components[@]}")" \
+      --selected "$(pm_join_by , "${default_menu_labels[@]}")" \
       --height 14 \
       --label-delimiter ":" \
       "${menu_options[@]}"
