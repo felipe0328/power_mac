@@ -18,7 +18,7 @@ Usage:
   ./install.sh --components ID,ID,... [--tmux-style top|bottom] [--dry-run]
 
 Options:
-  --all                 Install every selectable component.
+  --all                 Install all compatible components, preferring defaults.
   --components LIST     Install a comma-separated list of component IDs.
   --tmux-style STYLE    Use the top or bottom Tmux status bar (default: bottom).
   --dry-run             Show the resolved work without changing the machine.
@@ -128,14 +128,16 @@ SELECTED_COMPONENTS=()
 if [ "$SELECTION_MODE" = all ]; then
   while IFS= read -r id; do
     [ -n "$id" ] && SELECTED_COMPONENTS+=("$id")
-  done < <(pm_selectable_component_ids)
+  done < <(pm_compatible_component_ids)
 elif [ "$SELECTION_MODE" = components ]; then
   pm_split_csv "$COMPONENTS_ARGUMENT" SELECTED_COMPONENTS
 else
   pm_ui_selection_header
   menu_options=()
+  default_components=()
   for ((i = 0; i < ${#COMPONENT_IDS[@]}; i++)); do
     [ "${COMPONENT_HIDDEN[$i]}" = false ] || continue
+    [ "${COMPONENT_DEFAULTS[$i]}" = false ] || default_components+=("${COMPONENT_IDS[$i]}")
     printf -v menu_label "  %-19s %-18s %s:%s" \
       "${COMPONENT_CATEGORIES[$i]}" \
       "${COMPONENT_LABELS[$i]}" \
@@ -146,7 +148,7 @@ else
   selection_output="$(
     gum choose \
       --no-limit \
-      --selected "*" \
+      --selected "$(pm_join_by , "${default_components[@]}")" \
       --height 14 \
       --label-delimiter ":" \
       "${menu_options[@]}"
@@ -159,7 +161,47 @@ else
   done <<< "$selection_output"
 fi
 
+if [ "$SELECTION_MODE" = interactive ]; then
+  for ((i = 0; i < ${#COMPONENT_CONFLICT_IDS[@]}; i++)); do
+    conflict_id="${COMPONENT_CONFLICT_IDS[$i]}"
+    conflict_target="${COMPONENT_CONFLICT_TARGETS[$i]}"
+    if pm_array_contains "$conflict_id" "${SELECTED_COMPONENTS[@]}" &&
+      pm_array_contains "$conflict_target" "${SELECTED_COMPONENTS[@]}"; then
+      conflict_label="$(pm_component_field "$conflict_id" COMPONENT_LABELS)"
+      target_label="$(pm_component_field "$conflict_target" COMPONENT_LABELS)"
+      pm_warn "$conflict_label and $target_label overlap and should not run together."
+      keep_component="$(
+        gum choose \
+          --header "Choose one window manager to keep" \
+          "$conflict_id" \
+          "$conflict_target"
+      )" || {
+        pm_warn "Installation cancelled"
+        exit 0
+      }
+      filtered_components=()
+      for id in "${SELECTED_COMPONENTS[@]}"; do
+        if [ "$id" = "$conflict_id" ] || [ "$id" = "$conflict_target" ]; then
+          [ "$id" = "$keep_component" ] && filtered_components+=("$id")
+        else
+          filtered_components+=("$id")
+        fi
+      done
+      SELECTED_COMPONENTS=("${filtered_components[@]}")
+      pm_ok "Keeping $(pm_component_field "$keep_component" COMPONENT_LABELS)"
+    fi
+  done
+fi
+
 pm_validate_selected_ids "${SELECTED_COMPONENTS[@]}"
+
+for id in "${SELECTED_COMPONENTS[@]}"; do
+  for saved_id in "${PM_STATE_COMPONENTS[@]}"; do
+    if pm_components_conflict "$id" "$saved_id"; then
+      pm_warn "$(pm_component_field "$id" COMPONENT_LABELS) replaces $(pm_component_field "$saved_id" COMPONENT_LABELS) in the saved setup. Quit or disable $(pm_component_field "$saved_id" COMPONENT_LABELS) to avoid overlapping window controls."
+    fi
+  done
+done
 
 if pm_array_contains "tmux" "${SELECTED_COMPONENTS[@]}" && [ "$SELECTION_MODE" = interactive ] && [ "$TMUX_STYLE_SET" = false ]; then
   TMUX_STYLE="$(gum choose --selected "$TMUX_STYLE" --header "Choose the Tmux status bar position" bottom top)" || {
