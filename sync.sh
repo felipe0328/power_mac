@@ -109,6 +109,16 @@ if [ "${#FAILURES[@]}" -gt 0 ]; then
   exit 1
 fi
 
+pm_step "Repository setup"
+if [ "$POWER_MAC_DRY_RUN" = true ]; then
+  pm_ok "[dry-run] Would install this repository's Git hooks"
+elif bash "$SCRIPT_DIR/scripts/install-hooks.sh"; then
+  pm_ok "Git hooks installed"
+else
+  pm_error "Configs synced, but Git hooks could not be installed"
+  exit 1
+fi
+
 if [ "$MIGRATE_STATE" = true ]; then
   if pm_save_state "$POWER_MAC_TMUX_STYLE" "${SELECTED_COMPONENTS[@]}"; then
     pm_ok "Saved detected components for future syncs"
