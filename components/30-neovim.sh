@@ -7,7 +7,7 @@ component_define \
   "Editor & CLI" \
   "true" \
   "false" \
-  "" \
+  "ripgrep,fd" \
   "formula" \
   "neovim" \
   "nvim|.config/nvim" \
