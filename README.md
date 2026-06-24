@@ -124,6 +124,11 @@ Running `./sync.sh` updates only those components:
 ./sync.sh --all --dry-run
 ```
 
+Machines configured before v1.2 are migrated automatically. If no state file
+exists, `sync.sh` first detects configs already linked to this repository. When
+none can be detected, it preserves the original behavior by syncing the legacy
+Shell, WezTerm, Neovim, and AeroSpace config set, then saves that selection.
+
 ## 🧩 Adding software
 
 Components are auto-discovered from `components/*.sh`. A normal Homebrew formula

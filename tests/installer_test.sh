@@ -179,12 +179,43 @@ else
   fail "saved-state sync touches only recorded component configs"
 fi
 
+legacy_home="$TEST_TMP/home-legacy-detected"
+mkdir -p "$legacy_home/.config/wezterm" "$legacy_home/.config"
+ln -s "$ROOT/wezterm.lua" "$legacy_home/.config/wezterm/wezterm.lua"
+ln -s "$ROOT/nvim" "$legacy_home/.config/nvim"
+output="$(run_sync "$legacy_home")"
+if assert_contains "$output" "detected legacy power_mac configs: wezterm,neovim" &&
+  assert_file_contains "$legacy_home/.config/power_mac/state" "components=wezterm,neovim" &&
+  [ ! -e "$legacy_home/.zshrc" ] &&
+  [ ! -e "$legacy_home/.aerospace.toml" ]; then
+  pass "sync detects legacy managed symlinks and migrates state"
+else
+  fail "sync detects legacy managed symlinks and migrates state"
+fi
+
 empty_home="$TEST_TMP/home-no-state"
 mkdir -p "$empty_home"
-if run_sync "$empty_home" >/dev/null 2>&1; then
-  fail "sync without state or explicit selection is rejected"
+output="$(run_sync "$empty_home")"
+if assert_contains "$output" "using the legacy sync configuration" &&
+  [ -L "$empty_home/.zshrc" ] &&
+  [ -L "$empty_home/.config/wezterm/wezterm.lua" ] &&
+  [ -L "$empty_home/.config/nvim" ] &&
+  [ -L "$empty_home/.aerospace.toml" ] &&
+  [ ! -e "$empty_home/.tmux.conf" ] &&
+  assert_file_contains "$empty_home/.config/power_mac/state" "components=shell,wezterm,neovim,aerospace"; then
+  pass "sync without state falls back to the legacy config set"
 else
-  pass "sync without state or explicit selection is rejected"
+  fail "sync without state falls back to the legacy config set"
+fi
+
+dry_migration_home="$TEST_TMP/home-legacy-dry"
+mkdir -p "$dry_migration_home/.config/wezterm"
+ln -s "$ROOT/wezterm.lua" "$dry_migration_home/.config/wezterm/wezterm.lua"
+if run_sync "$dry_migration_home" --dry-run >/dev/null &&
+  [ ! -e "$dry_migration_home/.config/power_mac/state" ]; then
+  pass "legacy migration dry-run does not persist state"
+else
+  fail "legacy migration dry-run does not persist state"
 fi
 
 home="$TEST_TMP/home-backup"

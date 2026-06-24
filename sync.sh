@@ -15,6 +15,8 @@ Usage:
   ./sync.sh --components ID,ID,... [--dry-run]
 
 Without selection flags, sync.sh reads the components recorded by install.sh.
+If no state exists, it detects configs linked by older power_mac releases and
+migrates them after a successful sync.
 
 Options:
   --all                 Sync every selectable component configuration.
@@ -52,7 +54,10 @@ done
 
 pm_load_components
 SELECTED_COMPONENTS=()
-if pm_load_state; then
+STATE_LOADED=false
+MIGRATE_STATE=false
+if pm_load_state && [ "${#PM_STATE_COMPONENTS[@]}" -gt 0 ]; then
+  STATE_LOADED=true
   POWER_MAC_TMUX_STYLE="$PM_STATE_TMUX_STYLE"
 fi
 
@@ -66,10 +71,21 @@ case "$SELECTION_MODE" in
     pm_split_csv "$COMPONENTS_ARGUMENT" SELECTED_COMPONENTS
     ;;
   state)
-    if [ "${#PM_STATE_COMPONENTS[@]}" -eq 0 ]; then
-      pm_die "No saved component state. Run ./install.sh or use sync.sh --all/--components."
+    if [ "$STATE_LOADED" = true ]; then
+      SELECTED_COMPONENTS=("${PM_STATE_COMPONENTS[@]}")
+    else
+      while IFS= read -r id; do
+        [ -n "$id" ] && SELECTED_COMPONENTS+=("$id")
+      done < <(pm_detect_legacy_components)
+
+      if [ "${#SELECTED_COMPONENTS[@]}" -gt 0 ]; then
+        pm_warn "No saved state found; detected legacy power_mac configs: $(pm_join_by , "${SELECTED_COMPONENTS[@]}")"
+      else
+        SELECTED_COMPONENTS=(shell wezterm neovim aerospace)
+        pm_warn "No saved state or managed symlinks found; using the legacy sync configuration"
+      fi
+      MIGRATE_STATE=true
     fi
-    SELECTED_COMPONENTS=("${PM_STATE_COMPONENTS[@]}")
     ;;
 esac
 
@@ -91,6 +107,14 @@ done
 if [ "${#FAILURES[@]}" -gt 0 ]; then
   pm_error "Sync failed for: $(pm_join_by , "${FAILURES[@]}")"
   exit 1
+fi
+
+if [ "$MIGRATE_STATE" = true ]; then
+  if pm_save_state "$POWER_MAC_TMUX_STYLE" "${SELECTED_COMPONENTS[@]}"; then
+    pm_ok "Saved detected components for future syncs"
+  else
+    pm_warn "Configs synced, but component state could not be saved"
+  fi
 fi
 
 printf '\n%sSelected configurations are in sync.%s\n\n' "$PM_GREEN" "$PM_RESET"
