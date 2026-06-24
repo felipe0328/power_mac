@@ -46,8 +46,8 @@ automatically-unhide-macos-hidden-apps = false
 # This config version is only available since 'config-version = 2'
 # Fallback value (if you omit the key): persistent-workspaces = []
 persistent-workspaces = [
-    "0|misc", "1|slack", "2|teams", "3|web", "4|web2",
-    "5|code", "6|code2", "7|code3", "8|term", "9|admin",
+    "1|comms", "2|web", "3|code", "4|web2", "5|code2",
+    "6|term", "7|misc2", "8|misc3", "9|misc4", "0|misc1",
 ]
 
 # A callback that runs every time binding mode changes
@@ -55,31 +55,37 @@ persistent-workspaces = [
 # See: https://nikitabobko.github.io/AeroSpace/commands#mode
 on-mode-changed = []
 
-# One window per workspace — auto-place apps on open.
-# Extra Cursor/browser windows: move manually with shift-6/7 or shift-4.
+# Auto-place apps on open. Editors are forced to accordion so extra
+# windows stack instead of tiling. Move windows manually with alt-shift-<n>.
 [[on-window-detected]]
     if.app-id = 'com.tinyspeck.slackmacgap'
-    run = 'move-node-to-workspace 1|slack'
+    run = 'move-node-to-workspace 1|comms'
 
 [[on-window-detected]]
     if.app-id = 'com.microsoft.teams2'
-    run = 'move-node-to-workspace 2|teams'
+    run = 'move-node-to-workspace 1|comms'
 
 [[on-window-detected]]
     if.app-id = 'com.microsoft.teams'
-    run = 'move-node-to-workspace 2|teams'
+    run = 'move-node-to-workspace 1|comms'
 
 [[on-window-detected]]
     if.app-id = 'com.google.Chrome'
-    run = 'move-node-to-workspace 3|web'
+    run = 'move-node-to-workspace 2|web'
 
+# Cursor — all editor windows stack in 3|code via accordion
 [[on-window-detected]]
     if.app-id = 'com.todesktop.230313mzl4w4u92'
-    run = 'move-node-to-workspace 5|code'
+    run = ['move-node-to-workspace 3|code', 'layout accordion']
+
+# VSCode — same workspace, same accordion stacking
+[[on-window-detected]]
+    if.app-id = 'com.microsoft.VSCode'
+    run = ['move-node-to-workspace 3|code', 'layout accordion']
 
 [[on-window-detected]]
     if.app-id = 'com.github.wez.wezterm'
-    run = 'move-node-to-workspace 8|term'
+    run = 'move-node-to-workspace 6|term'
 
 # Possible values: (qwerty|dvorak|colemak)
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
@@ -87,7 +93,7 @@ on-mode-changed = []
     preset = 'qwerty'
 
 # Gaps between windows (inner-*) and between monitor edges (outer-*).
-# Possible values:
+# Possible values:˜
 # - Constant:     gaps.outer.top = 8
 # - Per monitor:  gaps.outer.top = [{ monitor.main = 16 }, { monitor."some-pattern" = 32 }, 24]
 #                 In this example, 24 is a default value when there is no match.
@@ -107,8 +113,40 @@ on-mode-changed = []
 # 'main' binding mode must be always presented
 # Fallback value (if you omit the key): mode.main.binding = {}
 [mode.main.binding]
-# Enter AeroSpace mode
-cmd-ctrl-alt-space = 'mode aerospace'
+    # Enter AeroSpace mode
+    cmd-ctrl-alt-space = 'mode aerospace'
+
+    # Workspaces on a 14" MacBook (accordion-stacked)
+    # 1 comms (slack+teams) · 2 web · 3 code · 4 web2 · 5 code2
+    # 6 term · 0 misc1 · 7 misc2 · 8 misc3 · 9 misc4
+    alt-1 = 'workspace 1|comms'
+    alt-2 = 'workspace 2|web'
+    alt-3 = 'workspace 3|code'
+    alt-4 = 'workspace 4|web2'
+    alt-5 = 'workspace 5|code2'
+    alt-6 = 'workspace 6|term'
+    alt-7 = 'workspace 7|misc2'
+    alt-8 = 'workspace 8|misc3'
+    alt-9 = 'workspace 9|misc4'
+    alt-0 = 'workspace 0|misc1'
+
+    # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
+    alt-shift-1 = 'move-node-to-workspace 1|comms'
+    alt-shift-2 = 'move-node-to-workspace 2|web'
+    alt-shift-3 = 'move-node-to-workspace 3|code'
+    alt-shift-4 = 'move-node-to-workspace 4|web2'
+    alt-shift-5 = 'move-node-to-workspace 5|code2'
+    alt-shift-6 = 'move-node-to-workspace 6|term'
+    alt-shift-7 = 'move-node-to-workspace 7|misc2'
+    alt-shift-8 = 'move-node-to-workspace 8|misc3'
+    alt-shift-9 = 'move-node-to-workspace 9|misc4'
+    alt-shift-0 = 'move-node-to-workspace 0|misc1'
+
+    # See: https://nikitabobko.github.io/AeroSpace/commands#focus
+    ctrl-cmd-left = 'focus left --boundaries all-monitors-outer-frame'
+    ctrl-cmd-down = 'focus down --boundaries all-monitors-outer-frame'
+    ctrl-cmd-up = 'focus up --boundaries all-monitors-outer-frame'
+    ctrl-cmd-right = 'focus right --boundaries all-monitors-outer-frame'
 
 [mode.aerospace.binding]
 
@@ -143,12 +181,6 @@ cmd-ctrl-alt-space = 'mode aerospace'
     slash = 'layout tiles horizontal vertical'
     comma = 'layout accordion horizontal vertical'
 
-    # See: https://nikitabobko.github.io/AeroSpace/commands#focus
-    left = 'focus left --boundaries all-monitors-outer-frame'
-    down = 'focus down --boundaries all-monitors-outer-frame'
-    up = 'focus up --boundaries all-monitors-outer-frame'
-    right = 'focus right --boundaries all-monitors-outer-frame'
-
     # See: https://nikitabobko.github.io/AeroSpace/commands#move
     shift-left = 'move left'
     shift-down = 'move down'
@@ -158,32 +190,6 @@ cmd-ctrl-alt-space = 'mode aerospace'
     # See: https://nikitabobko.github.io/AeroSpace/commands#resize
     minus = 'resize smart -50'
     equal = 'resize smart +50'
-
-    # Workspaces (0–9): one full-screen window per slot on a 14" MacBook
-    # 0 misc · 1 slack · 2 teams · 3 web · 4 web2
-    # 5 code · 6 code2 · 7 code3 · 8 term · 9 admin
-    0 = 'workspace 0|misc'
-    1 = 'workspace 1|slack'
-    2 = 'workspace 2|teams'
-    3 = 'workspace 3|web'
-    4 = 'workspace 4|web2'
-    5 = 'workspace 5|code'
-    6 = 'workspace 6|code2'
-    7 = 'workspace 7|code3'
-    8 = 'workspace 8|term'
-    9 = 'workspace 9|admin'
-
-    # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
-    shift-0 = 'move-node-to-workspace 0|misc'
-    shift-1 = 'move-node-to-workspace 1|slack'
-    shift-2 = 'move-node-to-workspace 2|teams'
-    shift-3 = 'move-node-to-workspace 3|web'
-    shift-4 = 'move-node-to-workspace 4|web2'
-    shift-5 = 'move-node-to-workspace 5|code'
-    shift-6 = 'move-node-to-workspace 6|code2'
-    shift-7 = 'move-node-to-workspace 7|code3'
-    shift-8 = 'move-node-to-workspace 8|term'
-    shift-9 = 'move-node-to-workspace 9|admin'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
     tab = 'workspace-back-and-forth'
