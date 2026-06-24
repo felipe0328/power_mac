@@ -41,7 +41,7 @@ emit_report() {
 }
 
 current="$(tr -d '[:space:]' < "$VERSION_FILE")"
-# Preview mode reads the version from the trusted base ref, not from a fork's tree.
+# When provided, read the version from an explicit trusted base ref.
 if [[ -n "${VERSION_BASE_REF:-}" ]]; then
   current="$(git show "${VERSION_BASE_REF}:VERSION" 2>/dev/null | tr -d '[:space:]')"
   if [[ -z "$current" ]]; then
@@ -72,32 +72,45 @@ if [[ "$REPORT" != true && "$head_msg" == *"[skip version]"* ]]; then
   exit 0
 fi
 
-# Prefer the exact pushed range in CI. PR previews provide base/head refs, while
-# local runs fall back to commits made since VERSION last changed.
-commit_range=""
-if [[ -n "${GITHUB_EVENT_BEFORE:-}" && "${GITHUB_EVENT_BEFORE}" != "0000000000000000000000000000000000000000" ]]; then
-  commit_range="${GITHUB_EVENT_BEFORE}..${head_ref}"
-elif [[ -n "${VERSION_BASE_REF:-}" ]]; then
-  commit_range="${VERSION_BASE_REF}..${head_ref}"
-else
-  last_version_commit="$(git log -1 --format=%H -- VERSION 2>/dev/null || true)"
-  if [[ -n "$last_version_commit" ]]; then
-    commit_range="${last_version_commit}..${head_ref}"
-  fi
-fi
-
-if [[ -z "$commit_range" ]]; then
-  log_cmd=(git log --format=%s -20 "$head_ref")
-elif ! git rev-parse "${commit_range%%..*}" &>/dev/null 2>&1; then
-  log_cmd=(git log --format=%s -20 "$head_ref")
-else
-  log_cmd=(git log --format=%s "$commit_range")
-fi
-
 messages=()
-while IFS= read -r line; do
-  [[ -n "$line" ]] && messages+=("$line")
-done < <("${log_cmd[@]}" 2>/dev/null || true)
+if [[ -n "${VERSION_MESSAGES_FILE:-}" ]]; then
+  # Privileged PR previews consume inert commit subjects retrieved through the API,
+  # avoiding any checkout or execution of contributor-controlled repository files.
+  if [[ ! -r "$VERSION_MESSAGES_FILE" ]]; then
+    echo "error: commit messages file is not readable: ${VERSION_MESSAGES_FILE}" >&2
+    exit 1
+  fi
+
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && messages+=("$line")
+  done < "$VERSION_MESSAGES_FILE"
+else
+  # Prefer the exact pushed range in CI. Local runs fall back to commits made
+  # since VERSION last changed.
+  commit_range=""
+  if [[ -n "${GITHUB_EVENT_BEFORE:-}" && "${GITHUB_EVENT_BEFORE}" != "0000000000000000000000000000000000000000" ]]; then
+    commit_range="${GITHUB_EVENT_BEFORE}..${head_ref}"
+  elif [[ -n "${VERSION_BASE_REF:-}" ]]; then
+    commit_range="${VERSION_BASE_REF}..${head_ref}"
+  else
+    last_version_commit="$(git log -1 --format=%H -- VERSION 2>/dev/null || true)"
+    if [[ -n "$last_version_commit" ]]; then
+      commit_range="${last_version_commit}..${head_ref}"
+    fi
+  fi
+
+  if [[ -z "$commit_range" ]]; then
+    log_cmd=(git log --format=%s -20 "$head_ref")
+  elif ! git rev-parse "${commit_range%%..*}" &>/dev/null 2>&1; then
+    log_cmd=(git log --format=%s -20 "$head_ref")
+  else
+    log_cmd=(git log --format=%s "$commit_range")
+  fi
+
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && messages+=("$line")
+  done < <("${log_cmd[@]}" 2>/dev/null || true)
+fi
 
 if [[ ${#messages[@]} -eq 0 ]]; then
   if [[ "$REPORT" == true ]]; then
@@ -135,10 +148,10 @@ done
 
 if [[ $bump_level -eq 0 ]]; then
   if [[ "$REPORT" == true ]]; then
-    emit_report "false" "$current" "none" "no conventional commits found in range"
+    emit_report "false" "$current" "none" "no conventional commits found"
     exit 0
   fi
-  echo "No bump: no conventional commits found in range"
+  echo "No bump: no conventional commits found"
   exit 0
 fi
 

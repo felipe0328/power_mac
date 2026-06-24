@@ -97,8 +97,8 @@ jobs:
           git push --dry-run origin HEAD:main
 
   preview:
-    # pull_request_target gives fork PRs permission to comment. Checkout the trusted
-    # base workflow and fetch the PR head only as Git data; do not execute PR code.
+    # pull_request_target gives fork PRs permission to comment. Checkout only trusted
+    # main code and read PR commit subjects through the API; never fetch the PR ref.
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request_target' || inputs.pr_number != ''
     permissions:
@@ -106,26 +106,30 @@ jobs:
       issues: write
       pull-requests: write
     env:
-      BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
-      CHECKOUT_REF: ${{ github.event.pull_request.base.ref || inputs.ref || github.ref }}
       PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ env.CHECKOUT_REF }}
-          fetch-depth: 0
-
-      - name: Fetch pull request head
-        run: |
-          git fetch origin "${BASE_REF}:refs/remotes/origin/${BASE_REF}"
-          git fetch --no-tags origin "refs/pull/${PR_NUMBER}/head:refs/remotes/pull/${PR_NUMBER}/head"
+          ref: main
+          persist-credentials: false
 
       - name: Calculate version preview
         id: preview
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "::error::pr_number must be numeric."
+            exit 1
+          fi
+
+          messages_file="${RUNNER_TEMP}/version-commit-messages.txt"
+          gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/commits?per_page=100" \
+            --jq '.[].commit.message | split("\n")[0]' > "$messages_file"
+
           chmod +x scripts/bump-version.sh
-          VERSION_BASE_REF="origin/${BASE_REF}" \
-            VERSION_HEAD_REF="refs/remotes/pull/${PR_NUMBER}/head" \
+          VERSION_MESSAGES_FILE="$messages_file" \
             scripts/bump-version.sh --report >> "$GITHUB_OUTPUT"
 
       - name: Comment version preview
