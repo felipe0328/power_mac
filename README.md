@@ -6,7 +6,7 @@
 
 *Dotfiles, apps, terminal setup, window management — all automated.*
 
-![Version](https://img.shields.io/badge/version-1.1.3-blueviolet?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.1.4-blueviolet?style=flat-square)
 ![macOS](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)
 ![Shell](https://img.shields.io/badge/shell-zsh-informational?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
@@ -101,6 +101,6 @@ cd ~/power_conf
 
 <div align="center">
 
-Made with ❤️ for a productive Mac setup &nbsp;•&nbsp; **v1.1.3**
+Made with ❤️ for a productive Mac setup &nbsp;•&nbsp; **v1.1.4**
 
 </div>
