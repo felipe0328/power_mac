@@ -1,153 +1,253 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Version: 1.1.4
 
-set -e
+set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+POWER_MAC_ROOT="$SCRIPT_DIR"
+# shellcheck source=lib/core.sh
+source "$SCRIPT_DIR/lib/core.sh"
+# shellcheck source=lib/ui.sh
+source "$SCRIPT_DIR/lib/ui.sh"
 
-# ── Colors ────────────────────────────────────────────────────────────────────
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
+show_help() {
+  cat <<'EOF'
+Usage:
+  ./install.sh
+  ./install.sh --all [--tmux-style top|bottom] [--dry-run]
+  ./install.sh --components ID,ID,... [--tmux-style top|bottom] [--dry-run]
 
-step() { echo -e "\n${BLUE}==>${NC} $1"; }
-ok()   { echo -e "  ${GREEN}✓${NC} $1"; }
-warn() { echo -e "  ${YELLOW}!${NC} $1"; }
+Options:
+  --all                 Install every selectable component.
+  --components LIST     Install a comma-separated list of component IDs.
+  --tmux-style STYLE    Use the top or bottom Tmux status bar (default: bottom).
+  --dry-run             Show the resolved work without changing the machine.
+  --help                Show this help and the available component IDs.
 
-install_cask() {
-  local cask="$1"
-  local name="${cask##*/}"  # strip tap prefix (e.g. nikitabobko/tap/aerospace → aerospace)
-  if brew list --cask "$name" &>/dev/null; then
-    ok "$name already installed"
-  else
-    if brew install --cask "$cask"; then
-      ok "$name installed"
-    else
-      warn "$name installation failed — skipping"
+With no selection flags, an interactive multi-select menu is shown. Use Space
+to toggle components and Enter to continue.
+EOF
+  if [ "${#COMPONENT_IDS[@]}" -gt 0 ]; then
+    printf '\nAvailable components:\n'
+    local i
+    for ((i = 0; i < ${#COMPONENT_IDS[@]}; i++)); do
+      [ "${COMPONENT_HIDDEN[$i]}" = false ] || continue
+      printf '  %-12s %s\n' "${COMPONENT_IDS[$i]}" "${COMPONENT_DESCRIPTIONS[$i]}"
+    done
+  fi
+}
+
+SELECTION_MODE="interactive"
+COMPONENTS_ARGUMENT=""
+TMUX_STYLE="bottom"
+TMUX_STYLE_SET=false
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --all)
+      [ "$SELECTION_MODE" = interactive ] || pm_die "--all conflicts with --components"
+      SELECTION_MODE="all"
+      ;;
+    --components)
+      [ "$#" -ge 2 ] || pm_die "--components requires a comma-separated value"
+      [ "$SELECTION_MODE" = interactive ] || pm_die "--components conflicts with --all"
+      SELECTION_MODE="components"
+      COMPONENTS_ARGUMENT="$2"
+      shift
+      ;;
+    --tmux-style)
+      [ "$#" -ge 2 ] || pm_die "--tmux-style requires top or bottom"
+      TMUX_STYLE="$2"
+      TMUX_STYLE_SET=true
+      shift
+      ;;
+    --dry-run)
+      POWER_MAC_DRY_RUN=true
+      ;;
+    --help|-h)
+      pm_load_components
+      show_help
+      exit 0
+      ;;
+    *)
+      pm_die "Unknown argument '$1'. Run ./install.sh --help."
+      ;;
+  esac
+  shift
+done
+
+case "$TMUX_STYLE" in top|bottom) ;; *) pm_die "Invalid Tmux style '$TMUX_STYLE'; expected top or bottom" ;; esac
+
+if [ "$(uname -s)" != Darwin ] && [ "${POWER_MAC_ALLOW_NON_DARWIN:-false}" != true ]; then
+  pm_die "power_mac supports macOS only"
+fi
+
+INTERACTIVE_UI=false
+if [ "$SELECTION_MODE" = interactive ]; then
+  INTERACTIVE_UI=true
+  if [ "${POWER_MAC_ALLOW_NON_TTY_INTERACTIVE:-false}" != true ]; then
+    [ -t 0 ] && [ -t 1 ] || pm_die "Interactive mode requires a terminal; use --all or --components"
+  fi
+  pm_ui_clear
+  pm_ui_banner
+  pm_ui_preparing_header
+  pm_ui_loading "Loading the component catalog"
+fi
+
+pm_load_components
+SELECTABLE_COUNT=0
+for ((i = 0; i < ${#COMPONENT_IDS[@]}; i++)); do
+  [ "${COMPONENT_HIDDEN[$i]}" = false ] && SELECTABLE_COUNT=$((SELECTABLE_COUNT + 1))
+done
+
+STATE_MESSAGE="Fresh setup detected"
+if pm_load_state; then
+  STATE_MESSAGE="Saved setup preferences restored"
+  if [ "$TMUX_STYLE_SET" = false ]; then
+    TMUX_STYLE="$PM_STATE_TMUX_STYLE"
+  fi
+fi
+
+if [ "$INTERACTIVE_UI" = true ]; then
+  pm_ui_ready "$SELECTABLE_COUNT apps and tools discovered"
+  pm_ui_loading "Checking saved setup preferences"
+  pm_ui_ready "$STATE_MESSAGE"
+  pm_ui_loading "Preparing the terminal interface"
+  pm_ensure_gum
+  pm_ui_ready "Terminal interface ready"
+  pm_ui_pause
+  pm_ui_clear
+  pm_ui_banner
+  pm_ui_preparing_header
+  pm_ui_ready "$SELECTABLE_COUNT apps and tools discovered"
+  pm_ui_ready "$STATE_MESSAGE"
+  pm_ui_ready "Terminal interface ready"
+fi
+
+SELECTED_COMPONENTS=()
+if [ "$SELECTION_MODE" = all ]; then
+  while IFS= read -r id; do
+    [ -n "$id" ] && SELECTED_COMPONENTS+=("$id")
+  done < <(pm_selectable_component_ids)
+elif [ "$SELECTION_MODE" = components ]; then
+  pm_split_csv "$COMPONENTS_ARGUMENT" SELECTED_COMPONENTS
+else
+  pm_ui_selection_header
+  menu_options=()
+  for ((i = 0; i < ${#COMPONENT_IDS[@]}; i++)); do
+    [ "${COMPONENT_HIDDEN[$i]}" = false ] || continue
+    printf -v menu_label "  %-19s %-18s %s:%s" \
+      "${COMPONENT_CATEGORIES[$i]}" \
+      "${COMPONENT_LABELS[$i]}" \
+      "${COMPONENT_DESCRIPTIONS[$i]}" \
+      "${COMPONENT_IDS[$i]}"
+    menu_options+=("$menu_label")
+  done
+  selection_output="$(
+    gum choose \
+      --no-limit \
+      --selected "*" \
+      --height 14 \
+      --label-delimiter ":" \
+      "${menu_options[@]}"
+  )" || {
+    pm_warn "Installation cancelled"
+    exit 0
+  }
+  while IFS= read -r id; do
+    [ -n "$id" ] && SELECTED_COMPONENTS+=("$id")
+  done <<< "$selection_output"
+fi
+
+pm_validate_selected_ids "${SELECTED_COMPONENTS[@]}"
+
+if pm_array_contains "tmux" "${SELECTED_COMPONENTS[@]}" && [ "$SELECTION_MODE" = interactive ] && [ "$TMUX_STYLE_SET" = false ]; then
+  TMUX_STYLE="$(gum choose --selected "$TMUX_STYLE" --header "Choose the Tmux status bar position" bottom top)" || {
+    pm_warn "Installation cancelled"
+    exit 0
+  }
+fi
+POWER_MAC_TMUX_STYLE="$TMUX_STYLE"
+
+pm_resolve_components "${SELECTED_COMPONENTS[@]}" >/dev/null
+RESOLVED_COMPONENTS=("${PM_RESOLVED_COMPONENTS[@]}")
+
+printf '\n%sSelected components%s\n' "$PM_BOLD" "$PM_RESET"
+for id in "${SELECTED_COMPONENTS[@]}"; do
+  printf '  • %s\n' "$(pm_component_field "$id" COMPONENT_LABELS)"
+done
+for id in "${RESOLVED_COMPONENTS[@]}"; do
+  if ! pm_array_contains "$id" "${SELECTED_COMPONENTS[@]}"; then
+    printf '  + %s (dependency)\n' "$(pm_component_field "$id" COMPONENT_LABELS)"
+  fi
+done
+if pm_array_contains "tmux" "${SELECTED_COMPONENTS[@]}"; then
+  printf '  • Tmux style: %s\n' "$TMUX_STYLE"
+fi
+
+if [ "$SELECTION_MODE" = interactive ]; then
+  gum confirm "Install this selection?" || {
+    pm_warn "Installation cancelled"
+    exit 0
+  }
+fi
+
+if pm_requires_homebrew "${RESOLVED_COMPONENTS[@]}"; then
+  pm_step "Checking Homebrew..."
+  pm_ensure_homebrew || pm_die "Homebrew is required but could not be installed"
+fi
+
+SUCCESSFUL_COMPONENTS=()
+FAILED_COMPONENTS=()
+for id in "${RESOLVED_COMPONENTS[@]}"; do
+  dependencies=()
+  pm_split_csv "$(pm_component_field "$id" COMPONENT_DEPENDENCIES)" dependencies
+  dependency_failed=false
+  for dependency in "${dependencies[@]}"; do
+    if pm_array_contains "$dependency" "${FAILED_COMPONENTS[@]}"; then
+      dependency_failed=true
+      break
     fi
-  fi
-}
-
-# MesloLGS NF — required by wezterm.lua and .p10k.zsh (nerdfont-v3).
-# Uses the Powerlevel10k-patched build so the family name matches configs exactly.
-install_meslo_lgs_nf() {
-  local variant="$1"
-  local filename="MesloLGS NF ${variant}.ttf"
-  local dest="$HOME/Library/Fonts/$filename"
-  local url_variant="${variant// /%20}"
-
-  if [ -f "$dest" ]; then
-    ok "$filename already installed"
-    return 0
-  fi
-
-  if curl -fsSL \
-    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20${url_variant}.ttf" \
-    -o "$dest"; then
-    ok "$filename installed"
+  done
+  if [ "$dependency_failed" = true ]; then
+    pm_error "Skipping $id because a dependency failed"
+    FAILED_COMPONENTS+=("$id")
+  elif pm_install_component "$id"; then
+    SUCCESSFUL_COMPONENTS+=("$id")
   else
-    warn "Failed to install $filename"
+    pm_error "Component '$id' failed"
+    FAILED_COMPONENTS+=("$id")
   fi
-}
-
-# ── 1. Homebrew ───────────────────────────────────────────────────────────────
-step "Checking Homebrew..."
-if ! command -v brew &>/dev/null; then
-  warn "Homebrew not found — installing..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  # Add brew to PATH immediately for Apple Silicon
-  if [[ -f /opt/homebrew/bin/brew ]]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-  fi
-  ok "Homebrew installed"
-else
-  ok "Homebrew already installed"
-fi
-
-# ── 2. CLI tools ──────────────────────────────────────────────────────────────
-step "Installing CLI tools..."
-brew install tmux neovim lazygit direnv fzf
-ok "CLI tools installed"
-
-# ── 3. Fonts ──────────────────────────────────────────────────────────────────
-step "Installing fonts..."
-mkdir -p "$HOME/Library/Fonts"
-for variant in "Regular" "Bold" "Italic" "Bold Italic"; do
-  install_meslo_lgs_nf "$variant"
-done
-ok "Fonts installed (MesloLGS NF — WezTerm + Powerlevel10k)"
-
-# ── 4. GUI apps ───────────────────────────────────────────────────────────────
-step "Installing apps..."
-for cask in wezterm nikitabobko/tap/aerospace alt-tab raycast maccy stats thaw; do
-  install_cask "$cask"
 done
 
-# ── 5. Oh My Zsh ─────────────────────────────────────────────────────────────
-step "Installing Oh My Zsh..."
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-  ok "Oh My Zsh installed"
+if [ "${POWER_MAC_SKIP_REPO_HOOKS:-false}" = true ]; then
+  :
+elif [ "$POWER_MAC_DRY_RUN" = true ]; then
+  pm_step "Repository setup"
+  pm_ok "[dry-run] Would install this repository's Git hooks"
 else
-  ok "Oh My Zsh already installed"
+  pm_step "Repository setup"
+  if bash "$SCRIPT_DIR/scripts/install-hooks.sh"; then
+    pm_ok "Git hooks installed"
+  else
+    pm_warn "Git hooks could not be installed"
+  fi
 fi
 
-# ── 6. Powerlevel10k theme ────────────────────────────────────────────────────
-step "Installing Powerlevel10k..."
-P10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
-if [ ! -d "$P10K_DIR" ]; then
-  git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
-  ok "Powerlevel10k installed"
-else
-  ok "Powerlevel10k already installed"
+STATE_COMPONENTS=()
+for id in "${SELECTED_COMPONENTS[@]}"; do
+  if pm_array_contains "$id" "${SUCCESSFUL_COMPONENTS[@]}"; then
+    STATE_COMPONENTS+=("$id")
+  fi
+done
+[ "${#STATE_COMPONENTS[@]}" -eq 0 ] || pm_save_state "$TMUX_STYLE" "${STATE_COMPONENTS[@]}" ||
+  pm_warn "Could not save installer state"
+
+if [ "${#FAILED_COMPONENTS[@]}" -gt 0 ]; then
+  printf '\n%sInstallation finished with failures:%s %s\n' \
+    "$PM_RED" "$PM_RESET" "$(pm_join_by , "${FAILED_COMPONENTS[@]}")"
+  exit 1
 fi
 
-# ── 7. zsh-autosuggestions plugin ─────────────────────────────────────────────
-step "Installing zsh-autosuggestions..."
-ZSH_AUTO_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
-if [ ! -d "$ZSH_AUTO_DIR" ]; then
-  git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_AUTO_DIR"
-  ok "zsh-autosuggestions installed"
-else
-  ok "zsh-autosuggestions already installed"
-fi
-
-# ── 8. Dotfiles ───────────────────────────────────────────────────────────────
-step "Linking dotfiles..."
-mkdir -p "$HOME/.config"
-
-ln -sf "$SCRIPT_DIR/.zshrc"         "$HOME/.zshrc"
-ln -sf "$SCRIPT_DIR/.p10k.zsh"      "$HOME/.p10k.zsh"
-ln -sf "$SCRIPT_DIR/.aerospace.toml" "$HOME/.aerospace.toml"
-ln -sf "$SCRIPT_DIR/exports"        "$HOME/.config/exports"
-ln -sf "$SCRIPT_DIR/alias"          "$HOME/.config/alias"
-
-mkdir -p "$HOME/.config/wezterm"
-ln -sf "$SCRIPT_DIR/wezterm.lua" "$HOME/.config/wezterm/wezterm.lua"
-
-# nvim — back up if a real directory already exists (not a symlink)
-if [ -d "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then
-  warn "Existing nvim config found — backing up to ~/.config/nvim.bak"
-  mv "$HOME/.config/nvim" "$HOME/.config/nvim.bak"
-fi
-ln -sf "$SCRIPT_DIR/nvim" "$HOME/.config/nvim"
-
-ok "Dotfiles linked"
-
-# ── 9. Git hooks ──────────────────────────────────────────────────────────────
-step "Installing git hooks..."
-bash "$SCRIPT_DIR/scripts/install-hooks.sh"
-ok "Git hooks installed"
-
-# ── 10. Tmux ─────────────────────────────────────────────────────────────────
-step "Setting up Tmux..."
-# Run from its own directory so relative `cp` paths inside the script resolve correctly
-(cd "$SCRIPT_DIR/tmux-installer" && bash tmux-installer.sh)
-ok "Tmux configured"
-
-# ── Done ──────────────────────────────────────────────────────────────────────
-echo -e "\n${GREEN}All done!${NC}"
-echo -e "  Restart your terminal (or run ${BLUE}exec zsh${NC}) to apply all changes."
-echo -e "  ${YELLOW}Note:${NC} Edit ~/.config/alias or ~/.config/goodrx_alias for extra aliases.\n"
+printf '\n%sAll selected components are ready.%s\n' "$PM_GREEN" "$PM_RESET"
+printf 'Restart affected apps or run %sexec zsh%s to reload the shell.\n\n' "$PM_BLUE" "$PM_RESET"

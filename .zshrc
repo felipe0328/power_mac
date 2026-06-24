@@ -128,7 +128,9 @@ export PATH="$PATH:/Applications/WezTerm.app/Contents/MacOS"
 #if command -v tmux &> /dev/null && [ -z "$TMUX" ]; then 
 #  tmux attach-session -t default || tmux new-session -s default
 #fi
-eval "$(direnv hook zsh)"
+if command -v direnv >/dev/null 2>&1; then
+  eval "$(direnv hook zsh)"
+fi
 export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.

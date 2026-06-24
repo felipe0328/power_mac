@@ -23,7 +23,32 @@ cd ~/power_conf
 ./install.sh
 ```
 
-> 💡 **Homebrew** will be installed automatically if not present on the machine.
+The installer opens an interactive terminal menu. Use the arrow keys to move,
+**Space** to select or deselect software, and **Enter** to continue. Everything
+is selected initially, preserving the original one-command setup.
+
+The interactive flow starts with a `power_mac` welcome screen and a compact
+preparation log while it discovers modules, restores saved preferences, and
+readies the terminal interface. It then transitions into a categorized app
+table for selection.
+
+> 💡 **Homebrew** and the Gum terminal interface are installed automatically
+> when needed.
+
+### Non-interactive usage
+
+```bash
+# Install everything
+./install.sh --all
+
+# Install only selected component bundles
+./install.sh --components shell,wezterm,neovim
+
+# Preview without changing the machine
+./install.sh --components tmux --tmux-style top --dry-run
+```
+
+Run `./install.sh --help` for the complete component list.
 
 ---
 
@@ -50,6 +75,7 @@ cd ~/power_conf
 | Tool | Description | Install |
 | --- | --- | --- |
 | 📋 **Maccy** | Lightweight keyboard-driven clipboard manager | `brew install --cask maccy` |
+| 🚀 **Raycast** | Launcher and productivity command palette | `brew install --cask raycast` |
 | 📊 **Stats** | System monitor (CPU, RAM, temps) in the menu bar | `brew install --cask stats` |
 | 🧊 **Thaw** | Menu bar manager — hide and organize menu bar icons | `brew install --cask thaw` |
 
@@ -79,15 +105,31 @@ cd ~/power_conf
 
 ## ⚙️ What the script does
 
-1. 🍺 Installs **Homebrew** if not present
-2. 📦 Installs all **CLI tools** — tmux, neovim, lazygit, direnv, fzf
-3. 🔤 Installs **MesloLGS NF** (WezTerm + Powerlevel10k prompt icons)
-4. 🖥️ Installs all **GUI apps** via Homebrew Cask
-5. 🐚 Installs **Oh My Zsh** and the **Powerlevel10k** theme
-6. 🔌 Installs **zsh-autosuggestions** plugin
-7. 🔗 **Symlinks** all dotfiles to their correct locations
-8. 🪝 Installs **git hooks** for conventional commit messages
-9. 🪟 Runs the interactive **Tmux installer**
+1. 🍺 Bootstraps **Homebrew** and the Gum terminal UI when needed
+2. ✅ Lets you select individual app/config bundles
+3. 🧩 Resolves shared dependencies such as **MesloLGS NF**
+4. 📦 Installs only the selected CLI tools and GUI apps
+5. 🔗 Safely backs up and symlinks each selected component's configs
+6. 💾 Records successful selections for future config syncs
+7. 🪝 Installs this repository's conventional-commit Git hook
+
+## 🔄 Sync selected configs
+
+`install.sh` records successful selections in `~/.config/power_mac/state`.
+Running `./sync.sh` updates only those components:
+
+```bash
+./sync.sh
+./sync.sh --components shell,wezterm
+./sync.sh --all --dry-run
+```
+
+## 🧩 Adding software
+
+Components are auto-discovered from `components/*.sh`. A normal Homebrew formula
+or cask needs only one small module declaring its ID, label, package, and optional
+config mappings. Shared discovery, menus, validation, dependency ordering,
+installation, dry-runs, state, and syncing require no core-script changes.
 
 ---
 
