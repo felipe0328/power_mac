@@ -19,7 +19,7 @@ If no state exists, it detects configs linked by older power_mac releases and
 migrates them after a successful sync.
 
 Options:
-  --all                 Sync every selectable component configuration.
+  --all                 Sync all compatible components, preferring defaults.
   --components LIST     Sync a comma-separated list of component IDs.
   --dry-run             Show config changes without writing them.
   --help                Show this help.
@@ -65,7 +65,7 @@ case "$SELECTION_MODE" in
   all)
     while IFS= read -r id; do
       [ -n "$id" ] && SELECTED_COMPONENTS+=("$id")
-    done < <(pm_selectable_component_ids)
+    done < <(pm_compatible_component_ids)
     ;;
   components)
     pm_split_csv "$COMPONENTS_ARGUMENT" SELECTED_COMPONENTS

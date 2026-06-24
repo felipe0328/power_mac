@@ -24,8 +24,8 @@ cd ~/power_conf
 ```
 
 The installer opens an interactive terminal menu. Use the arrow keys to move,
-**Space** to select or deselect software, and **Enter** to continue. Everything
-is selected initially, preserving the original one-command setup.
+**Space** to select or deselect software, and **Enter** to continue. Recommended
+apps are selected initially.
 
 The interactive flow starts with a `power_mac` welcome screen and a compact
 preparation log while it discovers modules, restores saved preferences, and
@@ -38,7 +38,7 @@ table for selection.
 ### Non-interactive usage
 
 ```bash
-# Install everything
+# Install all compatible components (recommended alternatives win)
 ./install.sh --all
 
 # Install only selected component bundles
@@ -68,7 +68,12 @@ Run `./install.sh --help` for the complete component list.
 | Tool | Description | Install |
 | --- | --- | --- |
 | 🌌 **AeroSpace** | i3-like tiling window manager for macOS | `brew install --cask nikitabobko/tap/aerospace` |
+| ▭ **Rectangle** | Keyboard-driven window snapping | `brew install --cask rectangle` |
 | 🔄 **AltTab** | Windows-style alt-tab app switcher | `brew install --cask alt-tab` |
+
+> AeroSpace and Rectangle are alternatives. The installer prevents selecting
+> both and keeps only the most recently selected one in its saved state. When
+> switching, it reminds you to quit or disable the previous window manager.
 
 ### 🛠️ Productivity & Utilities
 

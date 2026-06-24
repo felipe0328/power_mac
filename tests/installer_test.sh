@@ -98,8 +98,40 @@ if [ "$1" = choose ]; then
   if [ "${POWER_MAC_GUM_CANCEL:-false}" = true ]; then
     exit 1
   fi
+  simulate_defaults=false
+  case "$*" in
+    *"--label-delimiter"*) simulate_defaults="${POWER_MAC_GUM_SELECT_DEFAULTS:-false}" ;;
+  esac
+  if [ "$simulate_defaults" = true ]; then
+    selected=""
+    shift
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --selected)
+          selected="$2"
+          shift
+          ;;
+        *:*)
+          label="${1%:*}"
+          value="${1##*:}"
+          old_ifs="$IFS"
+          IFS=','
+          for selected_label in $selected; do
+            if [ "$selected_label" = "$label" ]; then
+              printf '%s\n' "$value"
+              break
+            fi
+          done
+          IFS="$old_ifs"
+          ;;
+      esac
+      shift
+    done
+    exit 0
+  fi
   case "$*" in
     *"Tmux status bar"*) printf '%s\n' "${POWER_MAC_GUM_TMUX_STYLE:-bottom}" ;;
+    *"Choose one window manager"*) printf '%s\n' "${POWER_MAC_GUM_WINDOW_MANAGER:-aerospace}" ;;
     *) printf '%s\n' "${POWER_MAC_GUM_SELECTION:-neovim}" ;;
   esac
 fi
@@ -172,6 +204,41 @@ if run_install "$home" --components lazygit >/dev/null &&
   pass "subsequent installs merge saved state"
 else
   fail "subsequent installs merge saved state"
+fi
+
+home="$TEST_TMP/home-window-manager-conflict"
+mkdir -p "$home"
+output="$(run_install "$home" --components rectangle --dry-run)"
+if assert_contains "$output" "Homebrew cask rectangle"; then
+  pass "Rectangle is available as a Homebrew cask"
+else
+  fail "Rectangle is available as a Homebrew cask"
+fi
+
+if run_install "$home" --components aerospace,rectangle --dry-run >/dev/null 2>&1; then
+  fail "conflicting window managers are rejected"
+else
+  pass "conflicting window managers are rejected"
+fi
+
+output="$(run_install "$home" --all --dry-run)"
+if assert_contains "$output" "AeroSpace" &&
+  ! assert_contains "$output" "Homebrew cask rectangle" >/dev/null 2>&1; then
+  pass "all mode prefers the recommended window manager"
+else
+  fail "all mode prefers the recommended window manager"
+fi
+
+home="$TEST_TMP/home-window-manager-switch"
+mkdir -p "$home"
+if run_install "$home" --components aerospace >/dev/null &&
+  output="$(run_install "$home" --components rectangle)" &&
+  assert_contains "$output" "Quit or disable AeroSpace" &&
+  assert_file_contains "$home/.config/power_mac/state" "components=rectangle" &&
+  ! assert_file_contains "$home/.config/power_mac/state" "aerospace" >/dev/null 2>&1; then
+  pass "selecting Rectangle replaces AeroSpace in saved state"
+else
+  fail "selecting Rectangle replaces AeroSpace in saved state"
 fi
 
 state_home="$TEST_TMP/home-state-sync"
@@ -302,6 +369,46 @@ if assert_contains "$interactive_output" "power_mac" &&
   pass "interactive welcome UI leads into chosen component"
 else
   fail "interactive welcome UI leads into chosen component"
+fi
+
+home="$TEST_TMP/home-interactive-defaults"
+mkdir -p "$home"
+if HOME="$home" \
+  PATH="$TEST_TMP/fake-bin:$PATH" \
+  POWER_MAC_ALLOW_NON_DARWIN=true \
+  POWER_MAC_ALLOW_NON_TTY_INTERACTIVE=true \
+  POWER_MAC_SKIP_REPO_HOOKS=true \
+  POWER_MAC_UI_DELAY=0 \
+  POWER_MAC_TEST_LOG="$TEST_TMP/commands.log" \
+  POWER_MAC_GUM_SELECT_DEFAULTS=true \
+  "$ROOT/install.sh" >/dev/null &&
+  assert_file_contains "$home/.config/power_mac/state" "shell" &&
+  assert_file_contains "$home/.config/power_mac/state" "aerospace" &&
+  ! assert_file_contains "$home/.config/power_mac/state" "rectangle" >/dev/null 2>&1; then
+  pass "interactive defaults use Gum display labels"
+else
+  fail "interactive defaults use Gum display labels"
+fi
+
+home="$TEST_TMP/home-interactive-conflict"
+mkdir -p "$home"
+interactive_output="$(HOME="$home" \
+  PATH="$TEST_TMP/fake-bin:$PATH" \
+  POWER_MAC_ALLOW_NON_DARWIN=true \
+  POWER_MAC_ALLOW_NON_TTY_INTERACTIVE=true \
+  POWER_MAC_SKIP_REPO_HOOKS=true \
+  POWER_MAC_UI_DELAY=0 \
+  POWER_MAC_TEST_LOG="$TEST_TMP/commands.log" \
+  POWER_MAC_GUM_SELECTION=$'aerospace\nrectangle' \
+  POWER_MAC_GUM_WINDOW_MANAGER=rectangle \
+  "$ROOT/install.sh")"
+if assert_contains "$interactive_output" "should not run together" &&
+  assert_contains "$interactive_output" "Keeping Rectangle" &&
+  assert_file_contains "$home/.config/power_mac/state" "components=rectangle" &&
+  ! assert_file_contains "$home/.config/power_mac/state" "aerospace" >/dev/null 2>&1; then
+  pass "interactive conflicts warn and ask which component to keep"
+else
+  fail "interactive conflicts warn and ask which component to keep"
 fi
 
 home="$TEST_TMP/home-cancel"

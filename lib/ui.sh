@@ -52,7 +52,7 @@ pm_ui_preparing_header() {
 
 pm_ui_selection_header() {
   printf '\n%sChoose your setup%s\n' "$PM_BOLD" "$PM_RESET"
-  printf 'Space toggles  •  Enter continues  •  Everything starts selected\n\n'
+  printf 'Space toggles  •  Enter continues  •  Recommended apps start selected\n\n'
   printf '  %-19s %-18s %s\n' "CATEGORY" "APP" "DESCRIPTION"
   printf '  %-19s %-18s %s\n' "───────────────────" "──────────────────" "────────────────────────────"
 }

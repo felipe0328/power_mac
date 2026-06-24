@@ -92,6 +92,8 @@ COMPONENT_INSTALL_HOOKS=()
 COMPONENT_SYNC_HOOKS=()
 COMPONENT_DRY_RUN_HOOKS=()
 COMPONENT_POST_HOOKS=()
+COMPONENT_CONFLICT_IDS=()
+COMPONENT_CONFLICT_TARGETS=()
 
 # component_define id label description category default hidden dependencies
 #                  kind package configs install_hook sync_hook dry_run_hook post_hook
@@ -111,6 +113,12 @@ component_define() {
   COMPONENT_SYNC_HOOKS+=("${12}")
   COMPONENT_DRY_RUN_HOOKS+=("${13}")
   COMPONENT_POST_HOOKS+=("${14}")
+}
+
+component_conflict() {
+  [ "$#" -eq 2 ] || pm_die "component_conflict expected 2 arguments, received $#"
+  COMPONENT_CONFLICT_IDS+=("$1")
+  COMPONENT_CONFLICT_TARGETS+=("$2")
 }
 
 pm_component_index() {
@@ -221,6 +229,16 @@ pm_validate_registry() {
     check_ids+=("$id")
   done
   pm_resolve_components "${check_ids[@]}" >/dev/null
+
+  for ((i = 0; i < ${#COMPONENT_CONFLICT_IDS[@]}; i++)); do
+    id="${COMPONENT_CONFLICT_IDS[$i]}"
+    other="${COMPONENT_CONFLICT_TARGETS[$i]}"
+    [ "$id" != "$other" ] || pm_die "Component '$id' cannot conflict with itself"
+    pm_component_index "$id" >/dev/null ||
+      pm_die "Conflict references unknown component '$id'"
+    pm_component_index "$other" >/dev/null ||
+      pm_die "Component '$id' conflicts with unknown component '$other'"
+  done
 }
 
 PM_RESOLVED_COMPONENTS=()
@@ -272,14 +290,58 @@ pm_default_component_ids() {
   done
 }
 
+pm_compatible_component_ids() {
+  local desired_default i id selected conflict_found
+  local compatible=()
+  for desired_default in true false; do
+    for ((i = 0; i < ${#COMPONENT_IDS[@]}; i++)); do
+      [ "${COMPONENT_HIDDEN[$i]}" = false ] || continue
+      [ "${COMPONENT_DEFAULTS[$i]}" = "$desired_default" ] || continue
+      id="${COMPONENT_IDS[$i]}"
+      conflict_found=false
+      for selected in "${compatible[@]}"; do
+        if pm_components_conflict "$id" "$selected"; then
+          conflict_found=true
+          break
+        fi
+      done
+      [ "$conflict_found" = true ] || compatible+=("$id")
+    done
+  done
+  printf '%s\n' "${compatible[@]}"
+}
+
 pm_validate_selected_ids() {
-  local id hidden
+  local id hidden i conflict_id conflict_target
   [ "$#" -gt 0 ] || pm_die "No components selected"
   for id in "$@"; do
     pm_component_index "$id" >/dev/null || pm_die "Unknown component '$id'"
     hidden="$(pm_component_field "$id" COMPONENT_HIDDEN)"
     [ "$hidden" = false ] || pm_die "Component '$id' is internal and cannot be selected directly"
   done
+  for ((i = 0; i < ${#COMPONENT_CONFLICT_IDS[@]}; i++)); do
+    conflict_id="${COMPONENT_CONFLICT_IDS[$i]}"
+    conflict_target="${COMPONENT_CONFLICT_TARGETS[$i]}"
+    if pm_array_contains "$conflict_id" "$@" &&
+      pm_array_contains "$conflict_target" "$@"; then
+      pm_die "$(pm_component_field "$conflict_id" COMPONENT_LABELS) and $(pm_component_field "$conflict_target" COMPONENT_LABELS) cannot be selected together. Choose one window manager."
+    fi
+  done
+}
+
+pm_components_conflict() {
+  local first="$1"
+  local second="$2"
+  local i conflict_id conflict_target
+  for ((i = 0; i < ${#COMPONENT_CONFLICT_IDS[@]}; i++)); do
+    conflict_id="${COMPONENT_CONFLICT_IDS[$i]}"
+    conflict_target="${COMPONENT_CONFLICT_TARGETS[$i]}"
+    if { [ "$conflict_id" = "$first" ] && [ "$conflict_target" = "$second" ]; } ||
+      { [ "$conflict_id" = "$second" ] && [ "$conflict_target" = "$first" ]; }; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 pm_requires_homebrew() {
@@ -529,7 +591,15 @@ pm_save_state() {
   local id
   if pm_load_state; then
     for id in "${PM_STATE_COMPONENTS[@]}"; do
-      pm_component_index "$id" >/dev/null 2>&1 && pm_append_unique merged "$id"
+      pm_component_index "$id" >/dev/null 2>&1 || continue
+      local selected conflict_found=false
+      for selected in "$@"; do
+        if pm_components_conflict "$id" "$selected"; then
+          conflict_found=true
+          break
+        fi
+      done
+      [ "$conflict_found" = true ] || pm_append_unique merged "$id"
     done
   fi
   for id in "$@"; do
