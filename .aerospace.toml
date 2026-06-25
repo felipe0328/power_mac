@@ -148,6 +148,10 @@ on-mode-changed = []
     ctrl-cmd-up = 'focus up --boundaries all-monitors-outer-frame'
     ctrl-cmd-right = 'focus right --boundaries all-monitors-outer-frame'
 
+    # Move current workspace to next/prev monitor without entering aerospace mode
+    ctrl-cmd-shift-tab = 'move-workspace-to-monitor --wrap-around next'
+    ctrl-cmd-shift-backtick = 'move-workspace-to-monitor --wrap-around prev'
+
 [mode.aerospace.binding]
 
     # All possible keys:
