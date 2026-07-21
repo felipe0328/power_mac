@@ -46,8 +46,8 @@ automatically-unhide-macos-hidden-apps = false
 # This config version is only available since 'config-version = 2'
 # Fallback value (if you omit the key): persistent-workspaces = []
 persistent-workspaces = [
-    "1-comms", "2-web", "3-code", "4-web2", "5-code2",
-    "6-term", "7-misc2", "8-misc3", "9-misc4", "0-misc1",
+    "1", "2", "3", "4", "5",
+    "6", "7", "8", "9", "0",
 ]
 
 # A callback that runs every time binding mode changes
@@ -59,33 +59,33 @@ on-mode-changed = []
 # windows stack instead of tiling. Move windows manually with alt-shift-<n>.
 [[on-window-detected]]
     if.app-id = 'com.tinyspeck.slackmacgap'
-    run = 'move-node-to-workspace 1-comms'
+    run = 'move-node-to-workspace 1'
 
 [[on-window-detected]]
     if.app-id = 'com.microsoft.teams2'
-    run = 'move-node-to-workspace 1-comms'
+    run = 'move-node-to-workspace 1'
 
 [[on-window-detected]]
     if.app-id = 'com.microsoft.teams'
-    run = 'move-node-to-workspace 1-comms'
+    run = 'move-node-to-workspace 1'
 
 [[on-window-detected]]
     if.app-id = 'com.google.Chrome'
-    run = 'move-node-to-workspace 2-web'
+    run = 'move-node-to-workspace 2'
 
-# Cursor — all editor windows stack in 3-code via accordion
+# Cursor — all editor windows stack in workspace 3 via accordion
 [[on-window-detected]]
     if.app-id = 'com.todesktop.230313mzl4w4u92'
-    run = ['move-node-to-workspace 3-code', 'layout accordion']
+    run = ['move-node-to-workspace 3', 'layout accordion']
 
 # VSCode — same workspace, same accordion stacking
 [[on-window-detected]]
     if.app-id = 'com.microsoft.VSCode'
-    run = ['move-node-to-workspace 3-code', 'layout accordion']
+    run = ['move-node-to-workspace 3', 'layout accordion']
 
 [[on-window-detected]]
     if.app-id = 'com.github.wez.wezterm'
-    run = 'move-node-to-workspace 6-term'
+    run = 'move-node-to-workspace 6'
 
 # Possible values: (qwerty|dvorak|colemak)
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
@@ -119,28 +119,28 @@ on-mode-changed = []
     # Workspaces on a 14" MacBook (accordion-stacked)
     # 1 comms (slack+teams) · 2 web · 3 code · 4 web2 · 5 code2
     # 6 term · 0 misc1 · 7 misc2 · 8 misc3 · 9 misc4
-    alt-1 = 'workspace 1-comms'
-    alt-2 = 'workspace 2-web'
-    alt-3 = 'workspace 3-code'
-    alt-4 = 'workspace 4-web2'
-    alt-5 = 'workspace 5-code2'
-    alt-6 = 'workspace 6-term'
-    alt-7 = 'workspace 7-misc2'
-    alt-8 = 'workspace 8-misc3'
-    alt-9 = 'workspace 9-misc4'
-    alt-0 = 'workspace 0-misc1'
+    alt-1 = 'workspace 1'
+    alt-2 = 'workspace 2'
+    alt-3 = 'workspace 3'
+    alt-4 = 'workspace 4'
+    alt-5 = 'workspace 5'
+    alt-6 = 'workspace 6'
+    alt-7 = 'workspace 7'
+    alt-8 = 'workspace 8'
+    alt-9 = 'workspace 9'
+    alt-0 = 'workspace 0'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
-    alt-shift-1 = 'move-node-to-workspace 1-comms'
-    alt-shift-2 = 'move-node-to-workspace 2-web'
-    alt-shift-3 = 'move-node-to-workspace 3-code'
-    alt-shift-4 = 'move-node-to-workspace 4-web2'
-    alt-shift-5 = 'move-node-to-workspace 5-code2'
-    alt-shift-6 = 'move-node-to-workspace 6-term'
-    alt-shift-7 = 'move-node-to-workspace 7-misc2'
-    alt-shift-8 = 'move-node-to-workspace 8-misc3'
-    alt-shift-9 = 'move-node-to-workspace 9-misc4'
-    alt-shift-0 = 'move-node-to-workspace 0-misc1'
+    alt-shift-1 = 'move-node-to-workspace 1'
+    alt-shift-2 = 'move-node-to-workspace 2'
+    alt-shift-3 = 'move-node-to-workspace 3'
+    alt-shift-4 = 'move-node-to-workspace 4'
+    alt-shift-5 = 'move-node-to-workspace 5'
+    alt-shift-6 = 'move-node-to-workspace 6'
+    alt-shift-7 = 'move-node-to-workspace 7'
+    alt-shift-8 = 'move-node-to-workspace 8'
+    alt-shift-9 = 'move-node-to-workspace 9'
+    alt-shift-0 = 'move-node-to-workspace 0'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#focus
     ctrl-cmd-left = 'focus left --boundaries all-monitors-outer-frame'
