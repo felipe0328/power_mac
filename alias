@@ -17,6 +17,8 @@ alias gco='git checkout'
 alias gcb='git checkout -b'
 alias gb='git branch'
 alias glog='git log --oneline --graph --decorate -20'
+alias gf='git fetch'
+alias gcp='git cherry-pick'
 
 # ── Tools (from power_mac install) ──────────────────────────────────────────
 alias v='nvim'
