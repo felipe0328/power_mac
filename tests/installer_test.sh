@@ -66,6 +66,17 @@ fi
 if [ "$1" = clone ]; then
   destination="${@: -1}"
   mkdir -p "$destination/.git"
+  if [ "${destination##*/}" = tpm ]; then
+    mkdir -p "$destination/bin"
+    cat > "$destination/bin/install_plugins" <<'TPM_EOF'
+#!/usr/bin/env bash
+printf 'tpm install_plugins\n' >> "${POWER_MAC_TEST_LOG:?}"
+[ -L "$HOME/.tmux.conf" ] || exit 1
+[ -L "$HOME/.config/tmux/style.conf" ] || exit 1
+[ "${POWER_MAC_FAIL_TPM_PLUGINS:-false}" != true ]
+TPM_EOF
+    chmod +x "$destination/bin/install_plugins"
+  fi
 fi
 exit 0
 EOF
@@ -130,7 +141,7 @@ if [ "$1" = choose ]; then
     exit 0
   fi
   case "$*" in
-    *"Tmux status bar"*) printf '%s\n' "${POWER_MAC_GUM_TMUX_STYLE:-bottom}" ;;
+    *"Tmux style"*) printf '%s\n' "${POWER_MAC_GUM_TMUX_STYLE:-bottom}" ;;
     *"Choose one window manager"*) printf '%s\n' "${POWER_MAC_GUM_WINDOW_MANAGER:-aerospace}" ;;
     *) printf '%s\n' "${POWER_MAC_GUM_SELECTION:-neovim}" ;;
   esac
@@ -148,6 +159,7 @@ run_install() {
     POWER_MAC_SKIP_REPO_HOOKS=true \
     POWER_MAC_UI_DELAY=0 \
     POWER_MAC_TEST_LOG="$TEST_TMP/commands.log" \
+    POWER_MAC_FAIL_TPM_PLUGINS="${POWER_MAC_FAIL_TPM_PLUGINS:-false}" \
     "$ROOT/install.sh" "$@"
 }
 
@@ -184,6 +196,20 @@ if assert_contains "$output" "MesloLGS NF (dependency)" && [ ! -e "$home/.zshrc"
   pass "dry-run resolves dependencies without writing"
 else
   fail "dry-run resolves dependencies without writing"
+fi
+
+tmux_dry_home="$TEST_TMP/home-tmux-dry"
+mkdir -p "$tmux_dry_home"
+output="$(run_install "$tmux_dry_home" --components tmux --tmux-style top --dry-run)"
+if assert_contains "$output" "tmux, TPM, and plugins" &&
+  assert_contains "$output" "$tmux_dry_home/.tmux.conf" &&
+  assert_contains "$output" "$tmux_dry_home/.config/tmux/style.conf" &&
+  [ ! -e "$tmux_dry_home/.tmux.conf" ] &&
+  [ ! -e "$tmux_dry_home/.config/tmux/style.conf" ] &&
+  [ ! -e "$tmux_dry_home/.config/power_mac/state" ]; then
+  pass "Tmux dry-run reports base, style, and plugin work without writing"
+else
+  fail "Tmux dry-run reports base, style, and plugin work without writing"
 fi
 
 home="$TEST_TMP/home-install"
@@ -320,23 +346,111 @@ else
 fi
 
 home="$TEST_TMP/home-tmux"
-mkdir -p "$home"
+mkdir -p "$home/.config/tmux"
 printf 'personal tmux\n' > "$home/.tmux.conf"
+printf 'personal style\n' > "$home/.config/tmux/style.conf"
+: > "$TEST_TMP/commands.log"
 if run_install "$home" --components tmux --tmux-style top >/dev/null &&
   [ -L "$home/.tmux.conf" ] &&
-  [ "$(readlink "$home/.tmux.conf")" = "$ROOT/tmux-installer/tmux-top.conf" ] &&
+  [ "$(readlink "$home/.tmux.conf")" = "$ROOT/tmux-installer/tmux.conf" ] &&
+  [ -L "$home/.config/tmux/style.conf" ] &&
+  [ "$(readlink "$home/.config/tmux/style.conf")" = "$ROOT/tmux-installer/tmux-top.conf" ] &&
   find "$home" -maxdepth 1 -name '.tmux.conf.bak.*' -type f | grep . >/dev/null &&
-  [ -d "$home/.tmux/plugins/tpm/.git" ]; then
-  pass "Tmux preserves config and installs TPM safely"
+  find "$home/.config/tmux" -maxdepth 1 -name 'style.conf.bak.*' -type f | grep . >/dev/null &&
+  [ -d "$home/.tmux/plugins/tpm/.git" ] &&
+  assert_file_contains "$TEST_TMP/commands.log" "tpm install_plugins"; then
+  pass "Tmux preserves configs and installs TPM plugins after linking"
 else
-  fail "Tmux preserves config and installs TPM safely"
+  fail "Tmux preserves configs and installs TPM plugins after linking"
+fi
+
+if grep -q '^set -g prefix C-a$' "$ROOT/tmux-installer/tmux-bottom.conf" &&
+  grep -q '^set -g prefix C-b$' "$ROOT/tmux-installer/tmux-top.conf" &&
+  ! grep -q '^set -g prefix' "$ROOT/tmux-installer/tmux.conf" &&
+  ! grep -q '^set -g status-position' "$ROOT/tmux-installer/tmux.conf" &&
+  ! grep -q '^set -g @plugin' "$ROOT/tmux-installer/tmux-top.conf" &&
+  ! grep -q '^set -g @plugin' "$ROOT/tmux-installer/tmux-bottom.conf" &&
+  [ "$(grep '^set -g @plugin' "$ROOT/tmux-installer/tmux.conf" | tail -n 1)" = \
+    "set -g @plugin 'tmux-plugins/tmux-continuum'" ] &&
+  grep -q '^source-file -q ~/.config/tmux/style.conf$' "$ROOT/tmux-installer/tmux.conf" &&
+  [ "$(tail -n 1 "$ROOT/tmux-installer/tmux.conf")" = "run '~/.tmux/plugins/tpm/tpm'" ]; then
+  pass "Tmux base and style overlays keep their configuration boundaries"
+else
+  fail "Tmux base and style overlays keep their configuration boundaries"
+fi
+
+if run_install "$home" --components tmux --tmux-style bottom >/dev/null &&
+  [ "$(readlink "$home/.tmux.conf")" = "$ROOT/tmux-installer/tmux.conf" ] &&
+  [ "$(readlink "$home/.config/tmux/style.conf")" = "$ROOT/tmux-installer/tmux-bottom.conf" ] &&
+  assert_file_contains "$home/.config/power_mac/state" "tmux_style=bottom"; then
+  pass "Tmux style switches by replacing only the overlay link"
+else
+  fail "Tmux style switches by replacing only the overlay link"
 fi
 
 if run_install "$home" --components lazygit >/dev/null &&
-  assert_file_contains "$home/.config/power_mac/state" "tmux_style=top"; then
+  assert_file_contains "$home/.config/power_mac/state" "tmux_style=bottom"; then
   pass "later installs preserve the saved Tmux style"
 else
   fail "later installs preserve the saved Tmux style"
+fi
+
+plugin_failure_home="$TEST_TMP/home-tmux-plugin-failure"
+mkdir -p "$plugin_failure_home"
+if POWER_MAC_FAIL_TPM_PLUGINS=true run_install "$plugin_failure_home" --components tmux >/dev/null 2>&1; then
+  fail "Tmux plugin installation failure returns non-zero"
+elif [ -L "$plugin_failure_home/.tmux.conf" ] &&
+  [ -L "$plugin_failure_home/.config/tmux/style.conf" ] &&
+  ! assert_file_contains "$plugin_failure_home/.config/power_mac/state" "components=tmux" >/dev/null 2>&1; then
+  pass "Tmux plugin failure prevents successful component state"
+else
+  fail "Tmux plugin failure prevents successful component state"
+fi
+
+if [ "${POWER_MAC_SKIP_TMUX_RUNTIME_TESTS:-false}" = true ] || ! command -v tmux >/dev/null 2>&1; then
+  pass "Tmux runtime style validation skipped"
+else
+  runtime_ok=true
+  runtime_supported=true
+  for style in top bottom; do
+    runtime_home="$TEST_TMP/runtime-$style"
+    runtime_socket="$TEST_TMP/tmux-$style.sock"
+    mkdir -p "$runtime_home/.config/tmux" "$runtime_home/.tmux/plugins/tpm"
+    ln -s "$ROOT/tmux-installer/tmux-$style.conf" "$runtime_home/.config/tmux/style.conf"
+    cat > "$runtime_home/.tmux/plugins/tpm/tpm" <<'EOF'
+#!/usr/bin/env sh
+exit 0
+EOF
+    chmod +x "$runtime_home/.tmux/plugins/tpm/tpm"
+
+    runtime_output="$(HOME="$runtime_home" tmux -S "$runtime_socket" \
+      -f "$ROOT/tmux-installer/tmux.conf" new-session -d /bin/sleep 30 2>&1)"
+    runtime_status=$?
+    if assert_contains "$runtime_output" "Operation not permitted" >/dev/null 2>&1; then
+      runtime_supported=false
+      break
+    elif [ "$runtime_status" -eq 0 ]; then
+      prefix="$(HOME="$runtime_home" tmux -S "$runtime_socket" show-options -gv prefix 2>/dev/null)"
+      prefix_status=$?
+      position="$(HOME="$runtime_home" tmux -S "$runtime_socket" show-options -gv status-position 2>/dev/null)"
+      position_status=$?
+      HOME="$runtime_home" tmux -S "$runtime_socket" kill-server >/dev/null 2>&1
+      if { [ "$style" = top ] && { [ "$prefix" != C-b ] || [ "$position" != top ]; }; } ||
+        { [ "$style" = bottom ] && { [ "$prefix" != C-a ] || [ "$position" != bottom ]; }; } ||
+        [ "$prefix_status" -ne 0 ] || [ "$position_status" -ne 0 ]; then
+        runtime_ok=false
+      fi
+    else
+      runtime_ok=false
+    fi
+  done
+  if [ "$runtime_supported" = false ]; then
+    pass "Tmux runtime style validation skipped because sockets are unavailable"
+  elif [ "$runtime_ok" = true ]; then
+    pass "Tmux parses both style overlays with the expected prefix and position"
+  else
+    fail "Tmux parses both style overlays with the expected prefix and position"
+  fi
 fi
 
 home="$TEST_TMP/home-partial"

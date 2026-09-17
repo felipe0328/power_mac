@@ -85,6 +85,18 @@ Squash merges are disabled — the CI workflow needs individual conventional com
 
 The neovim component depends on `ripgrep` and `fd`, which are auto-installed as dependencies.
 
+## Tmux config
+
+`tmux-installer/tmux.conf` contains behavior shared by both styles and is linked
+to `~/.tmux.conf`. It sources `~/.config/tmux/style.conf`, which the installer
+links to `tmux-top.conf` or `tmux-bottom.conf` based on `--tmux-style`.
+
+Keep prefix, status position, and palette in the style overlays. The bottom
+style uses `C-a`; the top style uses `C-b`. Shared bindings and plugin settings
+belong in `tmux.conf`. The style must be sourced before the final TPM `run`
+command, and `tmux-continuum` must remain last in the plugin list because it
+modifies `status-right` to schedule automatic saves.
+
 ## Dotfile symlink map
 
 Config mappings are declared in each component's `component_define` call. Key mappings:
@@ -98,3 +110,5 @@ Config mappings are declared in each component's `component_define` call. Key ma
 | aerospace | `.aerospace.toml` | `~/.aerospace.toml` |
 | wezterm | `wezterm.lua` | `~/.config/wezterm/wezterm.lua` |
 | neovim | `nvim/` | `~/.config/nvim/` |
+| tmux | `tmux-installer/tmux.conf` | `~/.tmux.conf` |
+| tmux | `tmux-installer/tmux-<style>.conf` | `~/.config/tmux/style.conf` |

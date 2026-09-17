@@ -61,7 +61,7 @@ Run `./install.sh --help` for the complete component list.
 | 🖥️ **WezTerm** | GPU-accelerated terminal with Lua-based config | `brew install --cask wezterm` |
 | 🐚 **Zsh + Oh My Zsh** | Shell framework with plugins and themes | installed by script |
 | ⚡ **Powerlevel10k** | Fast, highly customizable Zsh prompt theme | cloned by script |
-| 🪟 **Tmux** | Terminal multiplexer — sessions, splits, status bar | `brew install tmux` |
+| 🪟 **Tmux** | Terminal multiplexer — sessions, splits, status bar ([cheatsheet](tmux-installer/CHEATSHEET.md)) | `brew install tmux` |
 
 ### 🪄 Window Management
 
@@ -104,7 +104,7 @@ Run `./install.sh --help` for the complete component list.
 | `🌌 .aerospace.toml` | `~/.aerospace.toml` | AeroSpace workspace and keybinding config |
 | `🖥️ wezterm.lua` | `~/.config/wezterm/wezterm.lua` | WezTerm terminal font, theme, and UI settings |
 | `💚 nvim/` | `~/.config/nvim/` | Full LazyVim-based Neovim configuration |
-| `🪟 tmux-installer/` | — | Tmux installer script + Dracula-themed status bar configs |
+| `🪟 tmux-installer/` | `~/.tmux.conf` + `~/.config/tmux/style.conf` | Shared config, selectable styles, installer, and [cheatsheet](tmux-installer/CHEATSHEET.md) |
 
 ---
 
