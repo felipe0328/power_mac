@@ -20,7 +20,7 @@ Usage:
 Options:
   --all                 Install all compatible components, preferring defaults.
   --components LIST     Install a comma-separated list of component IDs.
-  --tmux-style STYLE    Use the top or bottom Tmux status bar (default: bottom).
+  --tmux-style STYLE    Use the top or bottom Tmux style (default: bottom).
   --dry-run             Show the resolved work without changing the machine.
   --help                Show this help and the available component IDs.
 
@@ -204,7 +204,7 @@ for id in "${SELECTED_COMPONENTS[@]}"; do
 done
 
 if pm_array_contains "tmux" "${SELECTED_COMPONENTS[@]}" && [ "$SELECTION_MODE" = interactive ] && [ "$TMUX_STYLE_SET" = false ]; then
-  TMUX_STYLE="$(gum choose --selected "$TMUX_STYLE" --header "Choose the Tmux status bar position" bottom top)" || {
+  TMUX_STYLE="$(gum choose --selected "$TMUX_STYLE" --header "Choose the Tmux style" bottom top)" || {
     pm_warn "Installation cancelled"
     exit 0
   }

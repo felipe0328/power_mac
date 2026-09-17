@@ -22,18 +22,48 @@ power_mac_install_tmux() {
 }
 
 power_mac_sync_tmux() {
-  local config_source="$POWER_MAC_ROOT/tmux-installer/tmux-${POWER_MAC_TMUX_STYLE}.conf"
-  pm_link_config "$config_source" "$HOME/.tmux.conf"
+  local style_source="$POWER_MAC_ROOT/tmux-installer/tmux-${POWER_MAC_TMUX_STYLE}.conf"
+  pm_link_config "$POWER_MAC_ROOT/tmux-installer/tmux.conf" "$HOME/.tmux.conf" || return 1
+  pm_link_config "$style_source" "$HOME/.config/tmux/style.conf"
+}
+
+power_mac_post_tmux() {
+  local plugin_installer="$HOME/.tmux/plugins/tpm/bin/install_plugins"
+  local running_server=false
+  if [ ! -x "$plugin_installer" ]; then
+    pm_error "TPM plugin installer is missing or not executable: $plugin_installer"
+    return 1
+  fi
+
+  # TPM reads its install path from the server environment. Load the new config
+  # first when a server already exists, including when this shell is detached.
+  if tmux list-sessions >/dev/null 2>&1; then
+    running_server=true
+    if ! tmux source-file "$HOME/.tmux.conf"; then
+      pm_warn "The running Tmux server could not load the new config before plugin installation"
+    fi
+  fi
+
+  "$plugin_installer" || return 1
+  pm_ok "Tmux plugins installed"
+
+  if [ "$running_server" = true ]; then
+    if tmux source-file "$HOME/.tmux.conf"; then
+      pm_ok "Running Tmux session reloaded"
+    else
+      pm_warn "Tmux is installed, but the running session could not be reloaded"
+    fi
+  fi
 }
 
 power_mac_dry_run_tmux() {
-  pm_ok "[dry-run] Would install tmux and TPM with the ${POWER_MAC_TMUX_STYLE} configuration"
+  pm_ok "[dry-run] Would install tmux, TPM, and plugins with the ${POWER_MAC_TMUX_STYLE} style"
 }
 
 component_define \
   "tmux" \
   "Tmux" \
-  "Terminal multiplexer, TPM, and a selectable top or bottom status bar" \
+  "Terminal multiplexer, plugins, and a selectable top or bottom style" \
   "Terminal & Shell" \
   "true" \
   "false" \
@@ -44,4 +74,4 @@ component_define \
   "power_mac_install_tmux" \
   "power_mac_sync_tmux" \
   "power_mac_dry_run_tmux" \
-  ""
+  "power_mac_post_tmux"
