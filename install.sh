@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Version: 1.8.0
+# Version: 1.9.0
 
 set -o pipefail
 
