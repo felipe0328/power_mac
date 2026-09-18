@@ -204,22 +204,29 @@ stored by this configuration.
 ## 📊 Read the status bar
 
 The selected style changes its position and colors, but both layouts contain
-the same information:
+the same information. The session name always comes first, far-left, and is
+never hidden:
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  ☺  ↕       1 editor   2 logs      CPU: 12%  RAM: 48%  Tue 10:42 AM     │
-│  └─ left ─┘ └── window list ──┘   └────── system + clock ────────────┘ │
+│  work  ☺  ↕   1 editor   2 logs      CPU: 12%  RAM: 48%  Tue 10:42 AM  │
+│  └session┘ └left┘ └── window list ──┘   └────── system + clock ──────┘ │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
 | Area | Meaning |
 | --- | --- |
+| Session name | The current session, far-left. Shrinks (14 → 8 → 5 letters) as the terminal narrows or more windows are open, but is never hidden |
 | `☺` | Changes color while tmux is waiting for the key after `prefix` |
 | `↕` | The active pane is zoomed |
-| Window list | Shows window numbers and names; the active window is highlighted |
-| CPU and RAM | Live system usage from `tmux-cpu`, refreshed every 5 seconds |
-| Clock | Day, time, and date |
+| Window list | Shows window numbers and names; the active window is highlighted. Names shrink to 4 letters once space is tight, so more windows stay visible before any get hidden |
+| CPU, RAM, clock | Live system usage from `tmux-cpu` and the date/time, refreshed every 5 seconds. These drop first — RAM/CPU, then the date, then the clock itself — so the window list always keeps its room |
+
+The bar is responsive: it reacts to both the terminal width and how many
+windows are open, so tabs are never sacrificed for the sake of showing stats.
+On a very narrow terminal with many windows open, the CPU/RAM/clock area can
+disappear entirely — the session name is still visible in the terminal's own
+title bar in that case.
 
 ## 🔌 Plugins at a glance
 
